@@ -1,4 +1,4 @@
-# Pic-Filter
+# PicFilter
 ## 前言
 基于Pillow图片分类,因为找不到合适的图片分类工具，就自己写了XD
 
