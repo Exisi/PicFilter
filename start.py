@@ -1,11 +1,9 @@
 import Function
 import MyImg
 
-output_path="D:\ChromeCoreDownloads"
-
-def im_classify(f):
+def im_classify(f, output_path):
     if MyImg.wh_type(f):
-        Function.copy(f,file_output=output_path,mode=1)
+        Function.copy(f, file_output=output_path, mode=1)
     else:
         Function.copy(f, file_output=output_path, mode=0)
     print(Function.name(f))
@@ -21,7 +19,7 @@ def main():
         for f in file_list:
 
             if MyImg.is_img(f):
-                im_classify(f)
+                im_classify(f, output_path)
 
         input("处理完成，输入任意键退出")
     else:
