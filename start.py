@@ -1,21 +1,21 @@
-import Function
+import Load
 import MyImg
 
 def im_classify(f, output_path):
     if MyImg.wh_type(f):
-        Function.copy(f, file_output=output_path, mode=1)
+        Load.copy(f, file_output=output_path, mode=1)
     else:
-        Function.copy(f, file_output=output_path, mode=0)
-    print(Function.name(f))
+        Load.copy(f, file_output=output_path, mode=0)
+    print(Load.name(f))
 
 def main():
     #载入图片
     file_dir=input("请输入图片目录：")
     output_path=input("请输入图片输出目录：")
-    if Function.exists(file_dir):
+    if Load.exists(file_dir):
         print("文件已读取")
-        Function.create_folder(output_path)
-        file_list=Function.read(file_dir)
+        Load.create_folder(output_path)
+        file_list=Load.read(file_dir)
         for f in file_list:
             if MyImg.is_img(f):
                 im_classify(f, output_path)
