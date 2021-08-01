@@ -2,7 +2,7 @@ import imghdr
 from PIL import Image
 
 
-def is_img(f):
+def is_img(f): 
     # 判断文件是否为图片
     '''
     :param f: 图片路径
