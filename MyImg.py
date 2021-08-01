@@ -25,5 +25,5 @@ def wh_type(f):
     im = Image.open(f)
     if im.width > im.height:  # 横屏
         return True
-    else:  # 竖屏
+    else:  # 竖屏 
         return False
