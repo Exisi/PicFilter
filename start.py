@@ -3,13 +3,16 @@ import MyImg
 
 
 def Function(files):
-    Function = input("\n——————————>请选择: \n1.图片去重 \n2.去除黑白图片 \n3.根据长宽筛选出横竖屏图片 \n")
+    Function = input("\n——————————>请选择: \n"
+                     "1.图片去重 \n2.去除黑白图片 \n3.筛选横竖屏图片 \nEsc:[Enter] <————\n")
     if Function == "1":
         reImg_removal(files)
     elif Function == "2":
         grayImg_removal(files)
     elif Function == "3":
         whImg_Classify(files)
+    elif Function == "":
+        exit()
     else:
         print("输入错误,请重新输入")
         main()
