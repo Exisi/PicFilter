@@ -29,7 +29,7 @@ def reImg_removal(file_dir):
 
 def blackImg_removal(file_dir):
     Function(file_dir)
-
+ 
 
 def whImg_Classify(file_dir):
     '''
