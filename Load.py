@@ -16,11 +16,15 @@ def read(file_dir):
     :param f: 图片路径
     :return List
     '''
-    global file_list
+    file_list=[]
     if os.path.exists(file_dir):
+        #取出目录和文件
         for root, dirs, files in os.walk(file_dir):
-            file_list = [os.path.join(file_dir, f) for f in files]  # 当前路径下所有非目录子文件路径
-        return file_list
+            for f in files: #迭代文件
+                for r in root.splitlines(): #迭代目录
+                    if exists(os.path.join(r, f)): #猜测路径，逐个匹配
+                        file_list.append(os.path.join(r, f)) #取出匹配路径
+    return file_list
 
 
 def copy(file_path, file_output: str, mode: int):
@@ -51,6 +55,6 @@ def exists(file_dir):
     # 路径是否存在
     """
     :param file_dir: 文件夹路径
-    :return: bool 
+    :return: bool
     """
     return os.path.exists(file_dir)
