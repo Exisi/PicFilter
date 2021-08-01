@@ -51,6 +51,6 @@ def exists(file_dir):
     # 路径是否存在
     """
     :param file_dir: 文件夹路径
-    :return: bool
+    :return: bool 
     """
     return os.path.exists(file_dir)
