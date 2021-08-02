@@ -1,10 +1,10 @@
 import Load
 import MyImg
-from collections import Counter
+
 
 def Function(files):
-    Func = input("\n——————————>请选择: \n" 
-                     "1.图片去重 \n2.筛选横竖屏图片 \nEsc:[Enter] <————\n")
+    Func = input("\n——————————>请选择: \n"
+                 "1.图片去重 \n2.筛选横竖屏图片 \nEsc:[Enter] <————\n")
     if Func == "1":
         reImg_removal(files)
     elif Func == "2":
@@ -33,15 +33,15 @@ def reImg_removal(files):
     利用字典的唯一值，确定重复
     :param files: 图片列表
     '''
-    hist_dict={}
+    hist_dict = {}
     for f in files:
         if str(MyImg.hist(f)) not in hist_dict:
             print("Not repeat, skip")
             hist_dict[str(MyImg.hist(f))] = f
         else:
-            print(f,"存在重复，已删除")
+            print(f, "存在重复，已删除")
             Load.delete(f)
-    input("处理完成,按任意键继续")
+    input("\n处理完成,按任意键继续")
     Function(files)
 
 
@@ -51,7 +51,7 @@ def whImg_Classify(files):
     :param f: 图片路径
     '''
     output_path = input("请输入图片输出目录：")
-    if output_path!=" " and output_path!="":
+    if output_path != " " and output_path != "":
         Load.create_folder(output_path)  # 新建输出路径
     else:
         print("输出目录不能为空,请重新输入")
