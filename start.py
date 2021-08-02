@@ -3,7 +3,7 @@ import MyImg
 from collections import Counter
 
 def Function(files):
-    Func = input("\n——————————>请选择: \n"
+    Func = input("\n——————————>请选择: \n" 
                      "1.图片去重 \n2.筛选横竖屏图片 \nEsc:[Enter] <————\n")
     if Func == "1":
         reImg_removal(files)
