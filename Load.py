@@ -58,3 +58,7 @@ def exists(file_dir):
     :return: bool
     """
     return os.path.exists(file_dir)
+
+
+def delete(f):
+    os.remove(f)
