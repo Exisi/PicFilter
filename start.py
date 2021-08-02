@@ -1,17 +1,15 @@
 import Load
 import MyImg
-
+from collections import Counter
 
 def Function(files):
-    Function = input("\n——————————>请选择: \n"
-                     "1.图片去重 \n2.去除黑白图片 \n3.筛选横竖屏图片 \nEsc:[Enter] <————\n")
-    if Function == "1":
+    Func = input("\n——————————>请选择: \n"
+                     "1.图片去重 \n2.筛选横竖屏图片 \nEsc:[Enter] <————\n")
+    if Func == "1":
         reImg_removal(files)
-    elif Function == "2":
-        grayImg_removal(files)
-    elif Function == "3":
+    elif Func == "2":
         whImg_Classify(files)
-    elif Function == "":
+    elif Func == "":
         exit()
     else:
         print("输入错误,请重新输入")
@@ -23,7 +21,6 @@ def im_classify(f, output_path):
     :param f: 图片路径
     :param output_path: 输出目录
     '''
-
     if MyImg.wh_type(f):
         Load.copy(f, file_output=output_path, mode=1)
     else:
@@ -32,10 +29,19 @@ def im_classify(f, output_path):
 
 
 def reImg_removal(files):
-    Function(files)
-
-
-def grayImg_removal(files):
+    '''
+    利用字典的唯一值，确定重复
+    :param files: 图片列表
+    '''
+    hist_dict={}
+    for f in files:
+        if str(MyImg.hist(f)) not in hist_dict:
+            print("Not repeat, skip")
+            hist_dict[str(MyImg.hist(f))] = f
+        else:
+            print(f,"存在重复，已删除")
+            Load.delete(f)
+    input("处理完成,按任意键继续")
     Function(files)
 
 
@@ -45,7 +51,11 @@ def whImg_Classify(files):
     :param f: 图片路径
     '''
     output_path = input("请输入图片输出目录：")
-    Load.create_folder(output_path)  # 新建输出路径
+    if output_path!=" " and output_path!="":
+        Load.create_folder(output_path)  # 新建输出路径
+    else:
+        print("输出目录不能为空,请重新输入")
+        Function(files)
     print("文件已读取")
     for f in files:
         if MyImg.is_img(f):
