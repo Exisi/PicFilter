@@ -61,4 +61,8 @@ def exists(file_dir):
 
 
 def delete(f):
+    '''
+    图片删除
+    :param f: 图片路径
+    '''
     os.remove(f)
