@@ -11,19 +11,14 @@ def create_folder(output_path: str):
 def read(file_dir):
     # 获取图片路径
     '''
-    :param file_dir: 图片目录
     :param file_list: 图片路径列表
-    :param f: 图片路径
     :return List
     '''
     file_list = []
     if os.path.exists(file_dir):
         # 取出目录和文件
         for root, dirs, files in os.walk(file_dir):
-            for f in files:  # 迭代文件
-                for r in root.splitlines():  # 迭代目录
-                    if exists(os.path.join(r, f)):  # 猜测路径，逐个匹配
-                        file_list.append(os.path.join(r, f))  # 取出匹配路径
+            file_list = [os.path.join(root, f) for f in files]  # 迭代获取文件
     return file_list
 
 
