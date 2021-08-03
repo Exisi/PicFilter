@@ -4,7 +4,7 @@ import MyImg
 
 def Function(files):
     '''
-    :param files: 文件图片列表
+    :param files: 图片列表
     '''
     Func = input("\n——————————>请选择: \n"
                  "1.图片去重 \n2.筛选横竖屏图片 \nEsc:[Enter] <————\n")
