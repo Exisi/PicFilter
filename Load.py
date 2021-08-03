@@ -62,5 +62,5 @@ def delete(f):
     os.remove(f)
 
 
-def get_size(f):
+def get_size(f): 
     return os.path.getsize(f)
