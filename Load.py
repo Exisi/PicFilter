@@ -22,7 +22,7 @@ def read(file_dir):
         for root, dirs, files in os.walk(file_dir):
             for f in files:  # 迭代文件
                 for r in root.splitlines():  # 迭代目录
-                    if get_size(r) != 0 and exists(os.path.join(r, f)):  # 猜测路径，逐个匹配
+                    if exists(os.path.join(r, f)):  # 猜测路径，逐个匹配
                         file_list.append(os.path.join(r, f))  # 取出匹配路径
     return file_list
 
