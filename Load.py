@@ -27,7 +27,7 @@ def copy(file_path, file_output: str, mode: int):
     :param file_path: 图片路径
     :param file_output: 图片输出路径
     :param file_name: 图片名称
-    :return: bool
+    :return: bool 
     '''
     file_name = name(file_path)
     if mode > 0:
