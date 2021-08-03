@@ -1,42 +1,72 @@
-import imghdr
-from PIL import Image
-import hashlib
+import os
+import shutil
 
 
-def is_img(f):
-    # 判断文件是否为图片
+def create_folder(output_path: str):
+    # 创建横竖屏文件夹
+    if not exists(output_path + '/横屏'): os.makedirs(output_path + '/横屏')
+    if not exists(output_path + '/竖屏'): os.makedirs(output_path + '/竖屏')
+
+
+def read(file_dir):
+    # 获取图片路径
     '''
+    :param file_dir: 图片目录
+    :param file_list: 图片路径列表
     :param f: 图片路径
-    :param imgType_list: 图片格式
+    :return List
+    '''
+    file_list = []
+    if os.path.exists(file_dir):
+        # 取出目录和文件
+        for root, dirs, files in os.walk(file_dir):
+            for f in files:  # 迭代文件
+                for r in root.splitlines():  # 迭代目录
+                    if get_size(r) == 0 and exists(os.path.join(r, f)):  # 猜测路径，逐个匹配
+                        file_list.append(os.path.join(r, f))  # 取出匹配路径
+    return file_list
+
+
+def copy(file_path, file_output: str, mode: int):
+    # 复制图片到对应文件
+    '''
+    :param file_path: 图片路径
+    :param file_output: 图片输出路径
+    :param file_name: 图片名称
     :return: bool
     '''
-    imgType_list = {'jpg', 'bmp', 'png', 'jpeg', 'rgb', 'tif', 'gif', 'webp'}
-    if imghdr.what(f) in imgType_list:
-        return True
+    file_name = name(file_path)
+    if mode > 0:
+        shutil.copyfile(file_path, file_output + '/横屏/' + file_name)
     else:
-        return False
+        shutil.copyfile(file_path, file_output + '/竖屏/' + file_name)
 
 
-def wh_type(f):
-    # 判断图片是横屏还是竖屏
+def name(file_path):
+    # 获取图片文件名
     '''
-    :param f: 图片路径
+    :param file_path: 图片路径
+    :return: str
+    '''
+    return os.path.basename(file_path)
+
+
+def exists(file_dir):
+    # 路径是否存在
+    """
+    :param file_dir: 文件夹路径
     :return: bool
-    '''
-    im = Image.open(f)
-    if im.width > im.height:  # 横屏
-        return True
-    else:  # 竖屏
-        return False
+    """
+    return os.path.exists(file_dir)
 
 
-def hist(f):
+def delete(f):
     '''
-    :param f: 图片路径 
-    :param size: 图片重设的大小，减小像素计算量
-    :return: Pil.im.histogram 图片的像素直方图
+    图片删除
+    :param f: 图片路径
     '''
-    im = Image.open(f)
-    size = 10, 10  # 不建议调低，容易误判，大小像素最低值5
-    i = im.resize(size, Image.ANTIALIAS).convert('RGB')
-    return i.histogram()
+    os.remove(f)
+
+
+def get_size(f):
+    return os.path.getsize(f)
