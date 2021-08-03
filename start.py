@@ -3,6 +3,9 @@ import MyImg
 
 
 def Function(files):
+    '''
+    :param files: 文件图片列表
+    '''
     Func = input("\n——————————>请选择: \n"
                  "1.图片去重 \n2.筛选横竖屏图片 \nEsc:[Enter] <————\n")
     if Func == "1":
@@ -18,6 +21,7 @@ def Function(files):
 
 def im_classify(f, output_path):
     '''
+    输出分类后的图片
     :param f: 图片路径
     :param output_path: 输出目录
     '''
@@ -30,7 +34,7 @@ def im_classify(f, output_path):
 
 def reImg_removal(files):
     '''
-    利用字典的唯一值，确定重复
+    图片去重，利用字典和图片像素直方图的唯一值，确定重复
     :param files: 图片列表
     '''
     hist_dict = {}
@@ -47,6 +51,7 @@ def reImg_removal(files):
 
 def whImg_Classify(files):
     '''
+    筛选横竖屏图片
     :param files: 图片列表
     :param f: 图片路径
     '''
@@ -60,7 +65,6 @@ def whImg_Classify(files):
     for f in files:
         if MyImg.is_img(f):
             im_classify(f, output_path)
-
     input("处理完成,按任意键继续")
     Function(files)
 
