@@ -15,8 +15,7 @@ def read(file_dir):
     :return List
     '''
     file_list = []
-    # 取出目录和文件
-    for root, dirs, files in os.walk(file_dir):
+    for root, dirs, files in os.walk(file_dir): # 取出目录和文件
         file_list = [os.path.join(root, f) for f in files]  # 迭代获取文件
     return file_list
 
