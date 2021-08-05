@@ -23,10 +23,12 @@ def wh_type(f):
     :return: bool
     '''
     im = Image.open(f)
-    if im.width > im.height:  # 横屏
-        return True
-    else:  # 竖屏
-        return False
+    if im.width > im.height:  # 横图
+        return 1
+    elif im.width < im.height:  # 竖图
+        return 2
+    else:
+        return 0
 
 
 def hist(f):

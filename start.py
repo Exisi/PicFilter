@@ -25,8 +25,10 @@ def im_classify(f, output_path):
     :param f: 图片路径
     :param output_path: 输出目录
     '''
-    if MyImg.wh_type(f):
+    if MyImg.wh_type(f) == 1:
         Load.copy(f, file_output=output_path, mode=1)
+    elif MyImg.wh_type(f) == 2:
+        Load.copy(f, file_output=output_path, mode=2)
     else:
         Load.copy(f, file_output=output_path, mode=0)
     print(Load.name(f))

@@ -4,8 +4,9 @@ import shutil
 
 def create_folder(output_path: str):
     # 创建横竖屏文件夹
-    if not exists(output_path + '/横屏'): os.makedirs(output_path + '/横屏')
-    if not exists(output_path + '/竖屏'): os.makedirs(output_path + '/竖屏')
+    if not exists(output_path + '/横图'): os.makedirs(output_path + '/横图')
+    if not exists(output_path + '/竖图'): os.makedirs(output_path + '/竖图')
+    if not exists(output_path + '/方图'): os.makedirs(output_path + '/方图')
 
 
 def read(file_dir):
@@ -29,11 +30,12 @@ def copy(file_path, file_output: str, mode: int):
     :return: bool 
     '''
     file_name = name(file_path)
-    if mode > 0:
-        shutil.copyfile(file_path, file_output + '/横屏/' + file_name)
+    if mode == 1:
+        shutil.copyfile(file_path, file_output + '/横图/' + file_name)
+    elif mode == 2 :
+        shutil.copyfile(file_path, file_output + '/竖图/' + file_name)
     else:
-        shutil.copyfile(file_path, file_output + '/竖屏/' + file_name)
-
+        shutil.copyfile(file_path, file_output + '/方图/' + file_name)
 
 def name(file_path):
     # 获取图片文件名
