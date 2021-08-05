@@ -3,7 +3,7 @@ import shutil
 
 
 def create_folder(output_path: str):
-    # 创建横竖屏文件夹
+    # 创建输出目录
     if not exists(output_path + '/横图'): os.makedirs(output_path + '/横图')
     if not exists(output_path + '/竖图'): os.makedirs(output_path + '/竖图')
     if not exists(output_path + '/方图'): os.makedirs(output_path + '/方图')
