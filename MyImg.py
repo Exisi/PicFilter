@@ -27,7 +27,7 @@ def wh_type(f):
         return 1
     elif im.width < im.height:  # 竖图
         return 2
-    else:
+    else: #方图
         return 0
 
 
