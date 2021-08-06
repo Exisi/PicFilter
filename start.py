@@ -162,8 +162,6 @@ def main():
     file_dir = input('请输入图片目录：')
     if Load.exists(file_dir):
         files = Load.read(file_dir)  # 载入图片路径
-        for f in files:
-            print(f)
         Function(files)
     else:
         print('文件路目录不存在!请重试\n')

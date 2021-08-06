@@ -36,7 +36,7 @@ def hist(f):
     '''
     im = Image.open(f)
     size = 10, 10  # 不建议调低，容易误判，大小像素最低值5
-    i = im.resize(size, Image.ANTIALIAS)
+    i = im.resize(size, Image.ANTIALIAS).convert('P')
     return i.histogram()
 
 
