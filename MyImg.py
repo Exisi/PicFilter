@@ -31,8 +31,7 @@ def hist(f):
     '''
     图片像素直方图
     :param f: 图片路径
-    :param size: 图片重设的大小，减小像素计算量
-    :return: Pil.im.histogram 图片的像素直方图
+    :return: List
     '''
     im = Image.open(f)
     return im.histogram()
