@@ -35,9 +35,7 @@ def hist(f):
     :return: Pil.im.histogram 图片的像素直方图
     '''
     im = Image.open(f)
-    size = 10, 10  # 不建议调低，容易误判，大小像素最低值5
-    i = im.resize(size, Image.ANTIALIAS).convert('P')
-    return i.histogram()
+    return im.histogram()
 
 
 def wh_limitByPor(f, type: str, proprotion: float):
