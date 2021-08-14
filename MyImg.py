@@ -49,9 +49,9 @@ def wh_limitByPor(f, type: str, proprotion: float):
     w = im.width
     h = im.height
     print('w:', w, 'h:', h, w / h, 'type', type)
-    if type == '1' and (h / w) > proprotion:
+    if type == '1' and (h / w) >= proprotion:
         return True
-    elif type == '2' and (w / h) > proprotion:
+    elif type == '2' and (w / h) >= proprotion:
         return True
     else:
         return False
@@ -69,9 +69,9 @@ def wh_limitByWH(f, limit: dict, type: str):
     w = im.width
     h = im.height
     if type == '1':
-        if h < limit['maxH']: return True
+        if h <= limit['maxH']: return True
     elif type == '2':
-        if w < limit['maxW']: return True
+        if w <= limit['maxW']: return True
     else:
         if w <= limit['maxW'] and w >= limit['minW'] and h <= limit['maxH'] and h >= limit['minH']: return True
     return False
