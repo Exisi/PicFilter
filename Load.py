@@ -4,14 +4,12 @@ import shutil
 
 def create_folder(output_path: str):
     # 创建输出目录
-    if not exists(output_path + '/横图'): os.makedirs(output_path + '/横图')
-    if not exists(output_path + '/竖图'): os.makedirs(output_path + '/竖图')
-    if not exists(output_path + '/方图'): os.makedirs(output_path + '/方图')
+    if not exists(output_path): os.makedirs(output_path)
 
 
 def read(file_dir):
-    # 获取图片路径
     '''
+    获取图片路径
     :param file_list: 图片路径列表
     :return List
     '''
@@ -21,21 +19,32 @@ def read(file_dir):
     return file_list
 
 
-def copy(file_path, file_output: str, mode: int):
-    # 复制图片到对应文件
+def full_copy(file_path, file_output: str):
     '''
+    复制图片到对应文件
     :param file_path: 图片路径
     :param file_output: 图片输出路径
     :param file_name: 图片名称
-    :return: bool 
     '''
     file_name = name(file_path)
-    if mode == 1:
-        shutil.copyfile(file_path, file_output + '/横图/' + file_name)
-    elif mode == 2:
-        shutil.copyfile(file_path, file_output + '/竖图/' + file_name)
-    else:
-        shutil.copyfile(file_path, file_output + '/方图/' + file_name)
+    if not exists(file_output + '/符合的图片'): os.makedirs(file_output + '/符合的图片')
+    shutil.copyfile(file_path, file_output + "/符合的图片/" + file_name)
+
+
+def copy(file_path, file_output: str, im_type: int):
+    '''
+    复制图片分类到对应文件
+    :param file_path: 图片路径
+    :param file_output: 图片输出路径
+    :param file_name: 图片名称
+    '''
+    file_name = name(file_path)
+    if im_type == 0:
+        if exists(file_output + '/方图'): shutil.copyfile(file_path, file_output + '/方图/' + file_name)
+    elif im_type == 1:
+        if exists(file_output + '/横图'): shutil.copyfile(file_path, file_output + '/横图/' + file_name)
+    elif im_type == 2:
+        if exists(file_output + '/竖图'): shutil.copyfile(file_path, file_output + '/竖图/' + file_name)
 
 
 def name(file_path: str):
@@ -51,16 +60,3 @@ def exists(file_dir: str):
 def delete(f):
     # 图片删除
     os.remove(f)
-
-
-def get_size(f):
-    # 获取文件大小
-    return os.path.getsize(f)
-
-
-def move(f):
-    # 文件移动
-    filename = name(f)
-    path = os.path.dirname(os.path.dirname(f))
-    if not exists(path + '/已移除的图片'): os.makedirs(path + '/已移除的图片')
-    shutil.move(f, path + '/已移除的图片/' + filename)

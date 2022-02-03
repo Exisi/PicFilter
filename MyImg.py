@@ -17,14 +17,20 @@ def is_img(f):
 
 
 def wh_type(f):
-    # 判断图片类型
+    '''
+    判断图片类型
+    :param f: 图片路径
+    :return: int
+    '''
     im = Image.open(f)
-    if im.width > im.height:  # 横图
+    if im.width == im.height:  # 方图
+        return 0
+    elif im.width > im.height:  # 横图
         return 1
     elif im.width < im.height:  # 竖图
         return 2
-    else:  # 方图
-        return 0
+    else:  # 未知
+        return 3
 
 
 def hist(f):
@@ -37,41 +43,35 @@ def hist(f):
     return im.histogram()
 
 
-def wh_limitByPor(f, type: str, proprotion: float):
+def wh_limitByPor(f, max_scale: float, min_scale: float):
     '''
     根据长宽比例限制
     :param f: 图片路径
     :param type: 图片类型
-    :param proprotion: 宽高比例
+    :param max_scale,min_scale: 最大/最小宽高比例
     :return: bool
     '''
     im = Image.open(f)
-    w = im.width
-    h = im.height
-    print('w:', w, 'h:', h, w / h, 'type', type)
-    if type == '1' and (h / w) >= proprotion:
-        return True
-    elif type == '2' and (w / h) >= proprotion:
+    w = float(im.width)
+    h = float(im.height)
+    if max_scale >= (w / h) >= min_scale or max_scale >= float(h / w) >= min_scale:
         return True
     else:
         return False
 
 
-def wh_limitByWH(f, limit: dict, type: str):
+def wh_limitByWH(f, limit: dict):
     '''
     根据纯数字宽高限制
     :param f: 图片路径
     :param limit: 最大最小宽高限制
-    :param type: 图片类型
     :return: bool
     '''
     im = Image.open(f)
-    w = im.width
-    h = im.height
-    if type == '1':
-        if h <= limit['maxH']: return True
-    elif type == '2':
-        if w <= limit['maxW']: return True
+    w = float(im.width)
+    h = float(im.height)
+    if float(limit['maxW'].get()) >= w >= float(limit['minW'].get()) and float(limit['maxH'].get()) >= h >= float(
+            limit['minH'].get()):
+        return True
     else:
-        if w <= limit['maxW'] and w >= limit['minW'] and h <= limit['maxH'] and h >= limit['minH']: return True
-    return False
+        return False
