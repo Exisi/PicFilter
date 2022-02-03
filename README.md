@@ -8,9 +8,14 @@
 * 分类为横/竖/方形图片
 
 ## 如何使用
-安装Pillow库  
-`pip install Pillow`  
-运行GUI.py，选择操作，输入图片路径和图片输出目录，通过迭代会取出路径内的所有图片
+1. 代码运行
+
+    安装Pillow库  
+    `pip install Pillow`  
+    运行GUI.py，选择操作，输入图片路径和图片输出目录，通过迭代会取出路径内的所有图片
+2. 可执行文件
+
+    运行 PicFilter.exe [下载](https://github.com/Exisi/PicFilter/releases/tag/0.5)
 
 ## 注
 * 图片去重暂不支持不同大小的相同图片的判断
