@@ -12,6 +12,11 @@
 * 通过筛选的图片会复制到符合的图片目录中
 * 图片筛选后的源文件不会删除（图片去重除外）
 
+|||||
+|-|-|-|-|
+|![](https://raw.githubusercontent.com/Exisi/PicFilter/main/img/show/1.jpg)|![](https://raw.githubusercontent.com/Exisi/PicFilter/main/img/show/2.jpg)|![](https://raw.githubusercontent.com/Exisi/PicFilter/main/img/show/3.jpg)|![](https://raw.githubusercontent.com/Exisi/PicFilter/main/img/show/4.jpg)|
+|||||
+
 ## 更新
 #### V0.5
 1. 更新GUI界面支持
