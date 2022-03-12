@@ -22,8 +22,9 @@ def is_duplicate_img(f, hist_dict):
     图片去重，利用字典和图片像素直方图的唯一值，确定重复
     :param files: 图片列表
     '''
-    if str(MyImg.hist(f)) not in hist_dict:
-        hist_dict[str(MyImg.hist(f))] = f
+    hist = str(MyImg.hist(f))
+    if hist not in hist_dict:
+        hist_dict[hist] = f
         return False
     else:
         Load.delete(f)
@@ -161,7 +162,7 @@ def duplicate_removel(self, mes, btn):
     :param btn: GUI.fist_tab.Button 开始按钮
     '''
     files = Load.read(self.inputname.get())
-    files = [f for f in files if MyImg.is_img(f)]
+    files = [f for f in files if MyImg.is_img(Load.suffix(f))]
     hist_dict = {}
     mes['state'] = 'normal'
     mes.delete('1.0', 'end')
@@ -189,7 +190,7 @@ def scale_selecter(self, mes, btn, im_type, max_scale, min_scale):
     :param min_scale: 最小长宽比
     '''
     files = Load.read(self.inputname.get())
-    files = [f for f in files if MyImg.is_img(f)]
+    files = [f for f in files if MyImg.is_img(Load.suffix(f))]
     mes['state'] = 'normal'
     mes.delete('1.0', 'end')
     for f in files:
@@ -218,7 +219,7 @@ def limit_seleter(self, mes, btn, limit):
     :param limit: 图片宽高限制的字典(maxH,minH,maxW,minW)
     '''
     files = Load.read(self.inputname.get())
-    files = [f for f in files if MyImg.is_img(f)]
+    files = [f for f in files if MyImg.is_img(Load.suffix(f))]
     mes['state'] = 'normal'
     mes.delete('1.0', 'end')
     for f in files:
@@ -244,7 +245,7 @@ def classify_selecter(self, mes, btn, check):
     :param im_type: 图片类型（方图/横图/竖图）
     '''
     files = Load.read(self.inputname.get())
-    files = [f for f in files if MyImg.is_img(f)]
+    files = [f for f in files if MyImg.is_img(Load.suffix(f))]
     mes['state'] = 'normal'
     mes.delete('1.0', 'end')
     if check[0].get() == 1: Load.create_folder(self.outputname.get() + '/横图')

@@ -15,7 +15,8 @@ def read(file_dir):
     '''
     file_list = []
     for root, dirs, files in os.walk(file_dir):  # 取出目录和文件
-        file_list = [os.path.join(root, f) for f in files]  # 迭代获取文件
+        for f in files:  # 迭代获取文件
+            file_list.append(os.path.join(root, f))
     return file_list
 
 
@@ -50,6 +51,12 @@ def copy(file_path, file_output: str, im_type: int):
 def name(file_path: str):
     # 获取图片文件名
     return os.path.basename(file_path)
+
+
+def suffix(file_path: str):
+    # 获取图片文件后缀
+    suffix = os.path.splitext(file_path);
+    return suffix[1]
 
 
 def exists(file_dir: str):

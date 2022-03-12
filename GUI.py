@@ -182,7 +182,7 @@ class App:
         # 第五个选择界面
         lf = ttk.Frame(tab)
         lf.grid(column=0, row=0, padx=5, pady=10)
-        label = ttk.Label(lf, text='PicFilter 0.5')
+        label = ttk.Label(lf, text='PicFilter 0.6')
         label.grid(column=0, row=0, padx=5, pady=5, sticky='W')
         label = ttk.Label(lf, text='项目地址：')
         label.grid(column=0, row=2, pady=5, sticky='E', )

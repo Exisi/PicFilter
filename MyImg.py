@@ -1,16 +1,15 @@
-import imghdr
 from PIL import Image
 
 
-def is_img(f):
+def is_img(suffix: str):
     '''
-    判断文件是否为图片
+    根据后缀判断文件是否为图片
     :param f: 图片路径
     :param imgType_list: 图片格式
     :return: bool
     '''
-    imgType_list = {'jpg', 'bmp', 'png', 'jpeg', 'rgb', 'tif', 'gif', 'webp'}  # 其他特殊格式课自行添加
-    if imghdr.what(f) in imgType_list:
+    imgType_list = {'.jpg', '.bmp', '.png', '.jpeg', '.rgb', '.tif', '.gif', '.webp'}
+    if suffix in imgType_list:
         return True
     else:
         return False
