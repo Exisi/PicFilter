@@ -17,6 +17,12 @@
 |![](https://raw.githubusercontent.com/Exisi/PicFilter/main/img/show/1.jpg)|![](https://raw.githubusercontent.com/Exisi/PicFilter/main/img/show/2.jpg)|![](https://raw.githubusercontent.com/Exisi/PicFilter/main/img/show/3.jpg)|![](https://raw.githubusercontent.com/Exisi/PicFilter/main/img/show/4.jpg)|
 |||||
 
+
+## TODO
+1. 两组图片取交集、补集、左/右差集、对称差集
+2. 图片格式统一转化
+
+
 ## 更新
 #### V0.6
 1. 优化了获取图片路径的速度
