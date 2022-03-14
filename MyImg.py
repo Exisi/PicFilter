@@ -8,7 +8,7 @@ def is_img(suffix: str):
     :param imgType_list: 图片格式
     :return: bool
     '''
-    imgType_list = {'.jpg', '.bmp', '.png', '.jpeg', '.rgb', '.tif', '.gif', '.webp'}
+    imgType_list = {'.jpg', '.bmp', '.png', '.jpeg', '.gif', '.webp', '.ico'}
     if suffix in imgType_list:
         return True
     else:

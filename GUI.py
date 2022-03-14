@@ -8,6 +8,7 @@ from tkinter import ttk, filedialog, scrolledtext, messagebox
 class App:
     def __init__(self):
         self.thread = 0
+        self.version = '0.7'
         self.root = tk.Tk()
         self.root.title('PicFilter')
         self.w, self.h = 500, 420
@@ -42,6 +43,7 @@ class App:
         self.third_tab(tab_third)  # 载入第三个选择界面
         self.fourth_tab(tab_fourth)  # 载入第四个选择界面
         self.fifth_tab(tab_fifth)  # 载入第五个选择界面
+
 
     def fist_tab(self, tab):
         # 第一个选择界面
@@ -182,7 +184,7 @@ class App:
         # 第五个选择界面
         lf = ttk.Frame(tab)
         lf.grid(column=0, row=0, padx=5, pady=10)
-        label = ttk.Label(lf, text='PicFilter 0.6')
+        label = ttk.Label(lf, text='PicFilter '+ self.version)
         label.grid(column=0, row=0, padx=5, pady=5, sticky='W')
         label = ttk.Label(lf, text='项目地址：')
         label.grid(column=0, row=2, pady=5, sticky='E', )
