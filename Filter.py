@@ -31,6 +31,36 @@ def is_duplicate_img(f, hist_dict):
         return True
 
 
+def get_intersection(files, hist_dict):
+    '''
+    取出图片集合间的交集
+    :param files: 图片列表
+    :param hist_dict: 图片列表直方图数组
+    :param inter_hist_dict: 交集集合字典
+    :return: dict
+    '''
+    inter_hist_dict = {}
+    for f in files:
+        hist = str(MyImg.hist(f))
+        if (hist in hist_dict):
+            inter_hist_dict[hist] = f
+    return inter_hist_dict
+
+
+def get_difference(hist_dict, inter_dict):
+    '''
+    获取单个集合的差集
+    :param hist_dict: 左集合的图片直方图字典
+    :param inter_dict: 差集
+    :return: list
+    '''
+    diff_dict = []
+    for hist in hist_dict:
+        if hist not in inter_dict:
+            diff_dict.append(hist_dict[hist])
+    return diff_dict
+
+
 def duplicate_start(self, mes, btn):
     '''
     图片去重的启动方法，检测输入的值是否正确
@@ -154,6 +184,44 @@ def classify_start(self, mes, btn, check):
         btn['state'] = 'normal'
 
 
+def collection_start(self, mes, btn, check):
+    '''
+    图片分类的启动方法，检测输入的值是否正确
+    :param self: GUI.App类属性
+    :param mes: GUI.fourth_tab.scrolledtext 程序运行的提示信息
+    :param btn: GUI.fourth_tab.Button 开始按钮
+    :param check: (inter,l_diff,r_diff,lr_diff) 集合选区的类型
+    '''
+    btn['state'] = 'disable'
+    if os_exist(self.inputname.get(), self.outputname.get()) and os_exist(self._inputname.get(), None):
+        if self.inputname.get() == self.outputname.get():
+            self.messagebox.showinfo(title='输入错误', message='文件左输入路径和输出路径不能相同，请重新选择！')
+            self.outputname.set('')
+            btn['state'] = 'normal'
+        elif self._inputname.get() == self.outputname.get():
+            self.messagebox.showinfo(title='输入错误', message='文件右输入路径和输出路径不能相同，请重新选择！')
+            self.outputname.set('')
+            btn['state'] = 'normal'
+        elif self.inputname.get() == self._inputname.get():
+            self.messagebox.showinfo(title='输入错误', message='文件左输入路径和右输入路径不能相同，请重新选择！')
+            self._inputname.set('')
+            btn['state'] = 'normal'
+        else:
+            if check[0].get() == check[1].get() == check[2].get() == check[3].get() == 0:
+                self.messagebox.showinfo(title='选择错误', message='请至少选择一种集合区间！')
+                btn['state'] = 'normal'
+            else:
+                pass
+                t1 = Thread(target=collection_district, args=(self, mes, btn, check))
+                t1.start()
+    else:
+        self.messagebox.showinfo(title='输入错误', message='文件路径不存在，请重新选择！')
+        self.inputname.set('')
+        self._inputname.set('')
+        self.outputname.set('')
+        btn['state'] = 'normal'
+
+
 def duplicate_removel(self, mes, btn):
     '''
     移除重复的图片
@@ -254,6 +322,62 @@ def classify_selecter(self, mes, btn, check):
     for f in files:
         im_type = MyImg.wh_type(f)
         Load.copy(f, self.outputname.get(), im_type)
+    mes.insert('end', '处理完成！')
+    mes['state'] = 'disable'
+    mes.see('end')
+    btn['state'] = 'normal'
+
+
+def collection_district(self, mes, btn, check):
+    '''
+    图片类型分类
+    :param self: GUI.App类属性
+    :param mes: GUI.fourth_tab.scrolledtext 程序运行的提示信息
+    :param btn: GUI.fourth_tab.Button 开始按钮
+    :param check: 集合选区类型
+    :return:
+    '''
+    left_files = Load.read(self.inputname.get())
+    right_files = Load.read(self._inputname.get())
+    left_files = [f for f in left_files if MyImg.is_img(Load.suffix(f))]
+    right_files = [f for f in right_files if MyImg.is_img(Load.suffix(f))]
+    mes['state'] = 'normal'
+    mes.delete('1.0', 'end')
+
+    left_hist_dict = {}
+    right_hist_dict = {}
+
+    for lf in left_files:
+        hist = str(MyImg.hist(lf))
+        left_hist_dict[hist] = lf
+
+    for lf in right_files:
+        hist = str(MyImg.hist(lf))
+        right_hist_dict[hist] = lf
+    # 交集(字典)
+    inter_dict = get_intersection(right_files, left_hist_dict)
+    # 左差集(列表)
+    left_list = get_difference(left_hist_dict, inter_dict)
+    # 右差集(列表)
+    right_list = get_difference(right_hist_dict, inter_dict)
+
+    if check[0].get() == 1:
+        for f in inter_dict:
+            Load._copy(inter_dict[f], self.outputname.get() + '/交集/')
+
+    if check[1].get() == 1:
+        for f in left_list:
+            Load._copy(f, self.outputname.get() + '/左差集/')
+
+    if check[2].get() == 1:
+        for f in right_list:
+            Load._copy(f, self.outputname.get() + '/右差集/')
+
+    if check[3].get() == 1:
+        double_list = left_list + right_list
+        for f in double_list:
+            Load._copy(f, self.outputname.get() + '/对称差集/')
+
     mes.insert('end', '处理完成！')
     mes['state'] = 'disable'
     mes.see('end')

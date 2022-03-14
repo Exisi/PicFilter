@@ -22,7 +22,7 @@ def read(file_dir):
 
 def full_copy(file_path, file_output: str):
     '''
-    复制图片到对应文件
+    复制图片到对应文件下的符合的图片目录
     :param file_path: 图片路径
     :param file_output: 图片输出路径
     :param file_name: 图片名称
@@ -30,6 +30,18 @@ def full_copy(file_path, file_output: str):
     file_name = name(file_path)
     if not exists(file_output + '/符合的图片'): os.makedirs(file_output + '/符合的图片')
     shutil.copyfile(file_path, file_output + "/符合的图片/" + file_name)
+
+
+def _copy(file_path, file_output: str):
+    '''
+    复制图片到对应文件
+    :param file_path: 图片路径
+    :param file_output: 图片输出路径
+    :param file_name: 图片名称
+    '''
+    file_name = name(file_path)
+    if not exists(file_output): os.makedirs(file_output)
+    shutil.copyfile(file_path, file_output + file_name)
 
 
 def copy(file_path, file_output: str, im_type: int):
