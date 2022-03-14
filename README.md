@@ -8,10 +8,10 @@
 * 分类为横/竖/方形图片
 * 两图片组之间的集合选取对比
 
-|||||
-|-|-|-|-|
-|![](https://raw.githubusercontent.com/Exisi/PicFilter/main/img/show/1.jpg)|![](https://raw.githubusercontent.com/Exisi/PicFilter/main/img/show/2.jpg)|![](https://raw.githubusercontent.com/Exisi/PicFilter/main/img/show/3.jpg)|![](https://raw.githubusercontent.com/Exisi/PicFilter/main/img/show/4.jpg)|
-|||||
+||||||
+|-|-|-|-|-|
+|![](https://raw.githubusercontent.com/Exisi/PicFilter/main/img/show/1.jpg)|![](https://raw.githubusercontent.com/Exisi/PicFilter/main/img/show/2.jpg)|![](https://raw.githubusercontent.com/Exisi/PicFilter/main/img/show/3.jpg)|![](https://raw.githubusercontent.com/Exisi/PicFilter/main/img/show/4.jpg)|![](https://raw.githubusercontent.com/Exisi/PicFilter/main/img/show/5.jpg)|
+||||||
 
 ## 注
 * 图片去重暂不支持不同大小的相同图片的判断
