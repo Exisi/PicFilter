@@ -1,5 +1,5 @@
-# PicFilter
-## 前言
+![PicFilter](https://socialify.git.ci/Exisi/PicFilter/image?description=1&forks=1&issues=1&language=1&name=1&owner=1&pattern=Plus&stargazers=1&theme=Light)
+
 基于Pillow的图片筛选工具，适用于对大量图片进行批量处理
 
 * 图片去重
