@@ -1,7 +1,8 @@
 ![PicFilter](https://socialify.git.ci/Exisi/PicFilter/image?description=1&forks=1&issues=1&language=1&name=1&owner=1&pattern=Plus&stargazers=1&theme=Light)
 
-基于Pillow的图片筛选工具，适用于对大量图片进行批量处理
+PicFilter是一个简单的图片处理程序，基于Pillow的实现，适用于批处理大量图片的筛选
 
+# 功能
 * 图片去重
 * 宽高比筛选
 * 宽高值筛选
@@ -13,7 +14,7 @@
 |![](https://raw.githubusercontent.com/Exisi/PicFilter/main/img/show/1.jpg)|![](https://raw.githubusercontent.com/Exisi/PicFilter/main/img/show/2.jpg)|![](https://raw.githubusercontent.com/Exisi/PicFilter/main/img/show/3.jpg)|![](https://raw.githubusercontent.com/Exisi/PicFilter/main/img/show/4.jpg)|![](https://raw.githubusercontent.com/Exisi/PicFilter/main/img/show/5.jpg)|
 ||||||
 
-## 注
+# 使用注意
 * 图片去重暂不支持不同大小的相同图片的判断
 * 通过筛选的图片会复制到符合的图片目录中
 * 图片筛选后的源文件不会删除（图片去重除外）
