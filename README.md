@@ -9,6 +9,9 @@ PicFilter是一个简单的图片处理程序，基于Pillow的实现，适用�
 * 分类为横/竖/方形图片
 * 两图片组之间的集合选取对比
 
+
+# 界面
+使用 Tkinter 快速构建
 ||||||
 |-|-|-|-|-|
 |![](https://raw.githubusercontent.com/Exisi/PicFilter/main/img/show/1.jpg)|![](https://raw.githubusercontent.com/Exisi/PicFilter/main/img/show/2.jpg)|![](https://raw.githubusercontent.com/Exisi/PicFilter/main/img/show/3.jpg)|![](https://raw.githubusercontent.com/Exisi/PicFilter/main/img/show/4.jpg)|![](https://raw.githubusercontent.com/Exisi/PicFilter/main/img/show/5.jpg)|
