@@ -13,7 +13,7 @@ PicFilter是一个简单的图片处理程序，基于Pillow的实现，适用�
 # 界面
 使用 Tkinter 快速构建
 
-<img src="https://raw.githubusercontent.com/Exisi/PicFilter/main/img/show/1.jpg" width=500 height=420>
+<img src="https://raw.githubusercontent.com/Exisi/PicFilter/main/img/show/1.jpg" width=500>
 
 # 使用注意
 * 图片去重暂不支持不同大小的相同图片的判断
