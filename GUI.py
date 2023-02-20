@@ -1,4 +1,5 @@
 import base64
+import os
 import Filter
 import webbrowser
 import tkinter as tk
@@ -293,4 +294,4 @@ class App:
 if __name__ == '__main__':
     app = App()
     app.root.mainloop()
-
+    os.remove('favicon.ico')
