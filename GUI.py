@@ -1,16 +1,20 @@
+import base64
 import Filter
 import webbrowser
-
 import tkinter as tk
+from Icon import Icon
 from tkinter import ttk, filedialog, scrolledtext, messagebox
 
 
 class App:
     def __init__(self):
         self.thread = 0
-        self.version = '0.8'
+        self.version = '0.2.0'
         self.root = tk.Tk()
         self.root.title('PicFilter')
+        with open('favicon.ico', 'wb') as tmp:
+            tmp.write(base64.b64decode(Icon().img))
+        self.root.iconbitmap('favicon.ico')
         self.w, self.h = 500, 420
         self.inputname = tk.StringVar()
         self.outputname = tk.StringVar()
@@ -109,6 +113,7 @@ class App:
         '''
         lf = ttk.LabelFrame(tab, text=' tips: 根据长宽临界大小筛选您的图片 ')
         lf.grid(column=0, row=0, padx=5, pady=10)
+
         input_dir = ttk.Entry(lf, textvariable=self.inputname, width=50)
         input_dir.grid(column=0, row=0, sticky='W', padx=5, pady=5)
         input_dir.focus()
@@ -152,8 +157,14 @@ class App:
         第四个选择界面
         :param check: (addH,addW,addS) 图片类型复选框是否选中的值
         '''
+        addH = tk.IntVar()
+        addW = tk.IntVar()
+        addS = tk.IntVar()
+        check = [addH, addW, addS]
+
         lf = ttk.LabelFrame(tab, text=' tips: 对您的图片进行横/竖/方的图片类型分类')
         lf.grid(column=0, row=0, padx=5, pady=10)
+
         input_dir = ttk.Entry(lf, textvariable=self.inputname, width=50)
         input_dir.grid(column=0, row=0, sticky='W', padx=5, pady=5)
         input_dir.focus()
@@ -165,10 +176,7 @@ class App:
         output.grid(column=1, row=1, sticky='W', padx=5)
         lf_inner = ttk.Frame(lf)
         lf_inner.grid(column=0, row=2, sticky='W', padx=5, pady=5)
-        addH = tk.IntVar()
-        addW = tk.IntVar()
-        addS = tk.IntVar()
-        check = [addH, addW, addS]
+
         w_check = tk.Checkbutton(lf_inner, text='横图', variable=addH)
         h_check = tk.Checkbutton(lf_inner, text='竖图', variable=addW)
         square_check = tk.Checkbutton(lf_inner, text='方图', variable=addS)
@@ -188,6 +196,11 @@ class App:
         第五个选择界面
         :param check: (inter,l_diff,r_diff,lr_diff) 集合选区的类型
         '''
+        inter = tk.IntVar()
+        l_diff = tk.IntVar()
+        r_diff = tk.IntVar()
+        lr_diff = tk.IntVar()
+
         lf = ttk.LabelFrame(tab, text=' tips: 对您的两组重合/不重合的图片进行集合选择')
         lf.grid(column=0, row=0, padx=5, pady=10)
         input_dir = ttk.Entry(lf, textvariable=self.inputname, width=50)
@@ -205,10 +218,7 @@ class App:
         output.grid(column=1, row=2, sticky='W', padx=5, pady=5)
         lf_inner = ttk.Frame(lf)
         lf_inner.grid(column=0, row=3, sticky='W', padx=5, pady=5)
-        inter = tk.IntVar()
-        l_diff = tk.IntVar()
-        r_diff = tk.IntVar()
-        lr_diff = tk.IntVar()
+
         check = [inter, l_diff, r_diff, lr_diff]
         inter_check = tk.Checkbutton(lf_inner, text='交集', variable=inter)
         l_diff_check = tk.Checkbutton(lf_inner, text='左差集', variable=l_diff)
@@ -226,14 +236,31 @@ class App:
     def about_tab(self, tab):
         # 关于界面
         lf = ttk.Frame(tab)
-        lf.grid(column=0, row=0, padx=5, pady=10)
-        label = ttk.Label(lf, text='PicFilter ' + self.version)
-        label.grid(column=0, row=0, padx=5, pady=5, sticky='W')
-        label = ttk.Label(lf, text='项目地址：')
-        label.grid(column=0, row=2, pady=5, sticky='E', )
-        btn_source = tk.Button(lf, text='https://github.com/Exisi/PicFilter', bd=0, fg='blue', takefocus=False,
-                               activeforeground='red', cursor='plus', justify='left', command=self.direct_project)
-        btn_source.grid(column=1, row=2, pady=5, sticky='W', )
+        lf.grid(column=0, row=0, padx=0, pady=0)
+        text = tk.Text(lf, padx=10, pady=10, bd=0, bg='#f0f0f0')
+        text.pack()
+
+        text.insert(tk.INSERT, 'PicFilter ' + self.version + '\n\n')
+        text.insert(tk.INSERT, '项目地址：')
+        text.insert(tk.INSERT, 'https://github.com/Exisi/PicFilter')
+        text.tag_add("link", '3.5', '3.40')
+        text.tag_config('link', foreground='blue', underline=False)
+        text.config(state=tk.DISABLED)
+
+        def show_hand_cursor(event):
+            text.config(cursor='arrow')
+            text.tag_config('link', foreground='blue', underline=True)
+
+        def show_xterm_cursor(event):
+            text.config(cursor='xterm')
+            text.tag_config('link', foreground='blue', underline=False)
+
+        def direct_project(event):
+            webbrowser.open('https://github.com/Exisi/PicFilter')
+
+        text.tag_bind('link', '<Enter>', show_hand_cursor)
+        text.tag_bind('link', '<Leave>', show_xterm_cursor)
+        text.tag_bind('link', '<Button-1>', direct_project)
 
     def wh_value_validate(self, value):
         '''
@@ -246,10 +273,6 @@ class App:
         elif value != '':
             messagebox.showinfo(title='输入错误', message='请输入正整数数字！')
             return False
-
-    def direct_project(self):
-        # 关于项目的跳转
-        webbrowser.open('https://github.com/Exisi/PicFilter')
 
     def get_input_dir(self):
         # 获取文件输入路径选择的值，传递给输入框
@@ -270,3 +293,4 @@ class App:
 if __name__ == '__main__':
     app = App()
     app.root.mainloop()
+
