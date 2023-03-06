@@ -240,7 +240,7 @@ def duplicate_removel(self, mes, btn):
         else:
             mes.insert('end', '无重复，下一张\n\n')
         mes.see('end')
-        self.root.update_idletasks()
+        self.update_idletasks()
     mes.insert('end', '处理完成！')
     mes['state'] = 'disable'
     mes.see('end')
@@ -271,7 +271,7 @@ def scale_selecter(self, mes, btn, im_type, max_scale, min_scale):
         else:
             mes.insert('end', '不符合，下一张\n\n')
         mes.see('end')
-        self.root.update_idletasks()
+        self.update_idletasks()
     mes.insert('end', '处理完成！')
     mes['state'] = 'disable'
     mes.see('end')
@@ -297,7 +297,7 @@ def limit_seleter(self, mes, btn, limit):
         else:
             mes.insert('end', '不符合，下一张\n\n')
         mes.see('end')
-        self.root.update_idletasks()
+        self.update_idletasks()
     mes.insert('end', '处理完成！')
     mes['state'] = 'disable'
     mes.see('end')

@@ -7,32 +7,33 @@ from Icon import Icon
 from tkinter import ttk, filedialog, scrolledtext, messagebox
 
 
-class App:
+class App(tk.Tk):
     def __init__(self):
+        super().__init__()
+
         self.thread = 0
-        self.version = '0.2.0'
-        self.root = tk.Tk()
-        self.root.title('PicFilter')
+        self.version = '0.2.1'
+        self.title('PicFilter')
         with open('favicon.ico', 'wb') as tmp:
             tmp.write(base64.b64decode(Icon().img))
-        self.root.iconbitmap('favicon.ico')
+        self.iconbitmap('favicon.ico')
         self.w, self.h = 500, 420
         self.inputname = tk.StringVar()
         self.outputname = tk.StringVar()
         self._inputname = tk.StringVar()
-        self.scn_w, self.scn_h = self.root.maxsize()
+        self.scn_w, self.scn_h = self.maxsize()
         self.center_x = (self.scn_w - self.w) / 2
         self.center_y = (self.scn_h - self.h) / 2
-        self.root.geometry('%dx%d+%d+%d' % (self.w, self.h, self.center_x, self.center_y))  # center window on desktop
-        self.root.resizable(False, False)
-        self.root.update_idletasks()
-        self.root.deiconify()
+        self.geometry('%dx%d+%d+%d' % (self.w, self.h, self.center_x, self.center_y))  # center window on desktop
+        self.resizable(False, False)
+        self.update_idletasks()
+        self.deiconify()
         self.tab_bar()
         self.messagebox = messagebox
 
     def tab_bar(self):
         # 创建选项容器
-        tabControl = ttk.Notebook(self.root)
+        tabControl = ttk.Notebook(self)
         tab_first = ttk.Frame(master=tabControl)
         tabControl.add(tab_first, text='  图片去重  ')
         tab_second = ttk.Frame(tabControl)
@@ -134,7 +135,7 @@ class App:
         w_min_label.grid(column=0, row=4, sticky='E', padx=5)
         h_min_label = ttk.Label(lf_inner, text='   最小宽度')
         h_min_label.grid(column=2, row=4, sticky='E', padx=5)
-        validate = self.root.register(self.wh_value_validate)
+        validate = self.register(self.wh_value_validate)
         h_max_size = ttk.Spinbox(lf_inner, width=7, from_=0, to=99999, increment=1000, validate='focusout',
                                  validatecommand=(validate, '%P'))
         h_max_size.grid(column=1, row=3, sticky='W', padx=5, pady=5)
@@ -293,5 +294,5 @@ class App:
 
 if __name__ == '__main__':
     app = App()
-    app.root.mainloop()
+    app.mainloop()
     os.remove('favicon.ico')
