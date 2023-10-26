@@ -4,7 +4,7 @@ import Filter
 import webbrowser
 import tkinter as tk
 from Icon import Icon
-from tkinter import ttk, filedialog, scrolledtext, messagebox
+from tkinter import ttk, filedialog, scrolledtext, messagebox, font
 
 
 class App(tk.Tk):
@@ -12,7 +12,7 @@ class App(tk.Tk):
         super().__init__()
 
         self.thread = 0
-        self.version = '0.2.1'
+        self.version = '0.2.2'
         self.title('PicFilter')
         with open('favicon.ico', 'wb') as tmp:
             tmp.write(base64.b64decode(Icon().img))
@@ -58,12 +58,13 @@ class App(tk.Tk):
         # 第一个选择界面
         lf = ttk.LabelFrame(tab, text=' tips: 图片去重会将您的重复图片删除')
         lf.grid(column=0, row=0, padx=5, pady=10)
-        input_dir = ttk.Entry(lf, textvariable=self.inputname, width=50)
+        ft = font.Font(family='黑体', size=10)
+        input_dir = ttk.Entry(lf, textvariable=self.inputname, width=50, font=ft)
         input_dir.grid(column=0, row=0, sticky='W', padx=5, pady=5)
         input_dir.focus()
         source = ttk.Button(lf, text='输入', command=self.get_input_dir, takefocus=False)
         source.grid(column=1, row=0, sticky='W', padx=5, pady=5)
-        mes = scrolledtext.ScrolledText(lf, width=50, state=tk.DISABLED, wrap='char')
+        mes = scrolledtext.ScrolledText(lf, width=50, state=tk.DISABLED, wrap='char', font=ft)
         mes.grid(column=0, row=1, sticky='W', padx=5)
         btn_start = ttk.Button(lf, text='开始',
                                command=lambda: Filter.duplicate_start(self, mes, btn_start),
@@ -74,10 +75,11 @@ class App(tk.Tk):
         # 第二个选择界面
         lf = ttk.LabelFrame(tab, text=' tips: 根据长宽比例筛选您的图片 ')
         lf.grid(column=0, row=0, padx=5, pady=10)
-        input_dir = ttk.Entry(lf, textvariable=self.inputname, width=50)
+        ft = font.Font(family='黑体', size=10)
+        input_dir = ttk.Entry(lf, textvariable=self.inputname, width=50, font=ft)
         input_dir.grid(column=0, row=0, sticky='W', padx=5, pady=5)
         input_dir.focus()
-        output_dir = ttk.Entry(lf, textvariable=self.outputname, width=50)
+        output_dir = ttk.Entry(lf, textvariable=self.outputname, width=50, font=ft)
         output_dir.grid(column=0, row=1, sticky='W', padx=5)
         source = ttk.Button(lf, text='输入', command=self.get_input_dir)
         source.grid(column=1, row=0, sticky='W', padx=5, pady=5)
@@ -100,7 +102,7 @@ class App(tk.Tk):
         wh_type = ttk.Combobox(lf_inner, width=6, values=('全部', '横图', '竖图'), state='readonly')
         wh_type.current(0)
         wh_type.grid(column=1, row=2, sticky='W', padx=5, pady=5, ipadx=2)
-        mes = scrolledtext.ScrolledText(lf, width=50, heigh=16, state=tk.DISABLED)
+        mes = scrolledtext.ScrolledText(lf, width=50, heigh=16, state=tk.DISABLED, font=ft)
         mes.grid(column=0, row=4, sticky='W', padx=5)
         btn_start = ttk.Button(lf, text='开始',
                                command=lambda: Filter.scale_start(self, mes, btn_start, wh_type.current(),
@@ -115,11 +117,11 @@ class App(tk.Tk):
         '''
         lf = ttk.LabelFrame(tab, text=' tips: 根据长宽临界大小筛选您的图片 ')
         lf.grid(column=0, row=0, padx=5, pady=10)
-
-        input_dir = ttk.Entry(lf, textvariable=self.inputname, width=50)
+        ft = font.Font(family='黑体', size=10)
+        input_dir = ttk.Entry(lf, textvariable=self.inputname, width=50, font=ft)
         input_dir.grid(column=0, row=0, sticky='W', padx=5, pady=5)
         input_dir.focus()
-        output_dir = ttk.Entry(lf, textvariable=self.outputname, width=50)
+        output_dir = ttk.Entry(lf, textvariable=self.outputname, width=50, font=ft)
         output_dir.grid(column=0, row=1, sticky='W', padx=5)
         source = ttk.Button(lf, text='输入', command=self.get_input_dir)
         source.grid(column=1, row=0, sticky='W', padx=5, pady=5)
@@ -149,7 +151,7 @@ class App(tk.Tk):
                                  validatecommand=(validate, '%P'))
         w_min_size.grid(column=3, row=4, sticky='W', padx=5, pady=5)
         limit = {'maxH': h_max_size, 'minH': h_min_size, 'maxW': w_max_size, 'minW': w_min_size}
-        mes = scrolledtext.ScrolledText(lf, width=50, heigh=16, state=tk.DISABLED)
+        mes = scrolledtext.ScrolledText(lf, width=50, heigh=16, state=tk.DISABLED, font=ft)
         mes.grid(column=0, row=4, sticky='W', padx=5, ipady=1)
         btn_start = ttk.Button(lf, text='开始', command=lambda: Filter.limit_start(self, mes, btn_start, limit))
         btn_start.grid(column=1, row=4, sticky='N', padx=5)
@@ -166,11 +168,11 @@ class App(tk.Tk):
 
         lf = ttk.LabelFrame(tab, text=' tips: 对您的图片进行横/竖/方的图片类型分类')
         lf.grid(column=0, row=0, padx=5, pady=10)
-
-        input_dir = ttk.Entry(lf, textvariable=self.inputname, width=50)
+        ft = font.Font(family='黑体', size=10)
+        input_dir = ttk.Entry(lf, textvariable=self.inputname, width=50, font=ft)
         input_dir.grid(column=0, row=0, sticky='W', padx=5, pady=5)
         input_dir.focus()
-        output_dir = ttk.Entry(lf, textvariable=self.outputname, width=50)
+        output_dir = ttk.Entry(lf, textvariable=self.outputname, width=50, font=ft)
         output_dir.grid(column=0, row=1, sticky='W', padx=5)
         source = ttk.Button(lf, text='输入', command=self.get_input_dir)
         source.grid(column=1, row=0, sticky='W', padx=5, pady=5)
@@ -188,7 +190,7 @@ class App(tk.Tk):
         w_check.select()
         h_check.select()
         square_check.select()
-        mes = scrolledtext.ScrolledText(lf, width=50, heigh=18, state=tk.DISABLED)
+        mes = scrolledtext.ScrolledText(lf, width=50, heigh=18, state=tk.DISABLED, font=ft)
         mes.grid(column=0, row=4, sticky='W', padx=5, ipady=1)
         btn_start = ttk.Button(lf, text='开始', command=lambda: Filter.classify_start(self, mes, btn_start, check))
         btn_start.grid(column=1, row=4, sticky='N', padx=5)
@@ -205,12 +207,13 @@ class App(tk.Tk):
 
         lf = ttk.LabelFrame(tab, text=' tips: 对您的两组重合/不重合的图片进行集合选择')
         lf.grid(column=0, row=0, padx=5, pady=10)
-        input_dir = ttk.Entry(lf, textvariable=self.inputname, width=50)
+        ft = font.Font(family='黑体', size=10)
+        input_dir = ttk.Entry(lf, textvariable=self.inputname, width=50, font=ft)
         input_dir.grid(column=0, row=0, sticky='W', padx=5, pady=5)
         input_dir.focus()
-        right_input_dir = ttk.Entry(lf, textvariable=self._inputname, width=50)
+        right_input_dir = ttk.Entry(lf, textvariable=self._inputname, width=50, font=ft)
         right_input_dir.grid(column=0, row=1, sticky='W', padx=5, pady=5)
-        output_dir = ttk.Entry(lf, textvariable=self.outputname, width=50)
+        output_dir = ttk.Entry(lf, textvariable=self.outputname, width=50, font=ft)
         output_dir.grid(column=0, row=2, sticky='W', padx=5, pady=5)
         left_source = ttk.Button(lf, text='左输入', command=self.get_input_dir)
         left_source.grid(column=1, row=0, sticky='W', padx=5, pady=5)
@@ -230,7 +233,7 @@ class App(tk.Tk):
         l_diff_check.grid(column=1, row=0, sticky='W', padx=5, pady=5)
         r_diff_check.grid(column=2, row=0, sticky='W', padx=5, pady=5)
         lr_diff_check.grid(column=3, row=0, sticky='W', padx=5, pady=5)
-        mes = scrolledtext.ScrolledText(lf, width=50, heigh=18, state=tk.DISABLED)
+        mes = scrolledtext.ScrolledText(lf, width=50, heigh=18, state=tk.DISABLED, font=ft)
         mes.grid(column=0, row=4, sticky='W', padx=5, ipady=1)
         btn_start = ttk.Button(lf, text='开始', command=lambda: Filter.collection_start(self, mes, btn_start, check))
         btn_start.grid(column=1, row=4, sticky='N', padx=5)
