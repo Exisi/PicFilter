@@ -230,7 +230,7 @@ def duplicate_removel(self, mes, btn):
     :param btn: GUI.fist_tab.Button 开始按钮
     '''
     files = Load.read(self.inputname.get())
-    files = [f for f in files if MyImg.is_img(Load.suffix(f))]
+    files = [f for f in files if MyImg.is_img(f)]
     hist_dict = {}
     mes['state'] = 'normal'
     mes.delete('1.0', 'end')
@@ -258,7 +258,7 @@ def scale_selecter(self, mes, btn, im_type, max_scale, min_scale):
     :param min_scale: 最小长宽比
     '''
     files = Load.read(self.inputname.get())
-    files = [f for f in files if MyImg.is_img(Load.suffix(f))]
+    files = [f for f in files if MyImg.is_img(f)]
     mes['state'] = 'normal'
     mes.delete('1.0', 'end')
     for f in files:
@@ -287,7 +287,7 @@ def limit_seleter(self, mes, btn, limit):
     :param limit: 图片宽高限制的字典(maxH,minH,maxW,minW)
     '''
     files = Load.read(self.inputname.get())
-    files = [f for f in files if MyImg.is_img(Load.suffix(f))]
+    files = [f for f in files if MyImg.is_img(f)]
     mes['state'] = 'normal'
     mes.delete('1.0', 'end')
     for f in files:
@@ -313,9 +313,11 @@ def classify_selecter(self, mes, btn, check):
     :param im_type: 图片类型（方图/横图/竖图）
     '''
     files = Load.read(self.inputname.get())
-    files = [f for f in files if MyImg.is_img(Load.suffix(f))]
+    files = [f for f in files if MyImg.is_img(f)]
     mes['state'] = 'normal'
     mes.delete('1.0', 'end')
+    mes.insert('end', '处理中...\n\n')
+
     if check[0].get() == 1: Load.create_folder(self.outputname.get() + '/横图')
     if check[1].get() == 1: Load.create_folder(self.outputname.get() + '/竖图')
     if check[2].get() == 1: Load.create_folder(self.outputname.get() + '/方图')
@@ -339,10 +341,11 @@ def collection_district(self, mes, btn, check):
     '''
     left_files = Load.read(self.inputname.get())
     right_files = Load.read(self._inputname.get())
-    left_files = [f for f in left_files if MyImg.is_img(Load.suffix(f))]
-    right_files = [f for f in right_files if MyImg.is_img(Load.suffix(f))]
+    left_files = [f for f in left_files if MyImg.is_img(f)]
+    right_files = [f for f in right_files if MyImg.is_img(f)]
     mes['state'] = 'normal'
     mes.delete('1.0', 'end')
+    mes.insert('end', '处理中...\n\n')
 
     left_hist_dict = {}
     right_hist_dict = {}

@@ -1,18 +1,15 @@
+import imghdr
+
 from PIL import Image
 
 
-def is_img(suffix: str):
+def is_img(f):
     '''
     根据后缀判断文件是否为图片
     :param f: 图片路径
-    :param imgType_list: 图片格式
     :return: bool
     '''
-    imgType_list = {'.jpg', '.bmp', '.png', '.jpeg', '.gif', '.webp', '.ico'}
-    if suffix in imgType_list:
-        return True
-    else:
-        return False
+    return imghdr.what(f)
 
 
 def wh_type(f):
