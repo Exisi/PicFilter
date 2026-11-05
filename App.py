@@ -1,5 +1,7 @@
 import base64
+import json
 import os
+import sys
 import tempfile
 import tkinter as tk
 import webbrowser
@@ -30,7 +32,20 @@ NAV_ICON_FILES = {
     '关于': 'circle-info',
 }
 
-ICON_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'assets', 'icons')
+def _resource_dir():
+    return getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
+
+
+def _load_version(fallback='0.2.2'):
+    try:
+        path = os.path.join(_resource_dir(), 'package.json')
+        with open(path, encoding='utf-8') as manifest:
+            return json.load(manifest).get('version', fallback)
+    except (OSError, ValueError):
+        return fallback
+
+
+ICON_DIR = os.path.join(_resource_dir(), 'assets', 'icons')
 ICON_SIZE = (18, 18)
 
 SIDEBAR_WIDTH = 216
@@ -40,7 +55,7 @@ class App(ctk.CTk):
     def __init__(self):
         super().__init__()
 
-        self.version = '0.2.2'
+        self.version = _load_version()
         self.icon_path = os.path.join(tempfile.gettempdir(), 'picfilter.ico')
 
         ctk.set_appearance_mode('system')

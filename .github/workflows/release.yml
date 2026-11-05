@@ -1,0 +1,90 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Windows build
+    runs-on: windows-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Resolve version from tag
+        id: version
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}"
+          if ($tag -notmatch '^v(\d+\.\d+\.\d+)$') {
+            throw "Release tag must match v<major>.<minor>.<patch>, got '$tag'"
+          }
+          "tag=$tag" >> $env:GITHUB_OUTPUT
+          "value=$($Matches[1])" >> $env:GITHUB_OUTPUT
+
+      - name: Sync version into package.json
+        run: python scripts/set_version.py "v${{ steps.version.outputs.value }}"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pyinstaller
+
+      - name: Build application
+        run: >
+          pyinstaller --noconfirm --clean --windowed --name PicFilter
+          --icon "doc/img/favicon.ico"
+          --add-data "assets;assets"
+          --add-data "package.json;."
+          --collect-all customtkinter
+          App.py
+
+      - name: Create release archive
+        id: package
+        shell: pwsh
+        run: |
+          $version = "${{ steps.version.outputs.value }}"
+          $archive = "PicFilter-v$version-windows-x64.zip"
+          Compress-Archive -Path "dist/PicFilter/*" -DestinationPath $archive
+          "archive=$archive" >> $env:GITHUB_OUTPUT
+
+      - name: Generate release notes
+        shell: pwsh
+        run: |
+          $tag = "${{ steps.version.outputs.tag }}"
+          $version = "${{ steps.version.outputs.value }}"
+          $previous = git tag --sort=-creatordate | Where-Object { $_ -ne $tag } | Select-Object -First 1
+          $notes = @("# PicFilter v$version", "")
+          if ($previous) {
+            $notes += "## Changes since $previous"
+            $notes += ""
+            $notes += @(git log "$previous..$tag" --no-merges --pretty=format:"- %s")
+            $notes += ""
+            $notes += "Full changelog: https://github.com/${{ github.repository }}/compare/$previous...$tag"
+          } else {
+            $notes += "## Changes"
+            $notes += ""
+            $notes += @(git log $tag --no-merges --pretty=format:"- %s")
+          }
+          $notes | Set-Content -Path release_notes.md -Encoding utf8
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: PicFilter v${{ steps.version.outputs.value }}
+          body_path: release_notes.md
+          files: ${{ steps.package.outputs.archive }}
+          fail_on_unmatched_files: true
