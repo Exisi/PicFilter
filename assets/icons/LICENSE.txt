@@ -1,0 +1,8 @@
+Icons in this directory are rasterized from Font Awesome Free 6 (Solid).
+
+Font Awesome Free is free, open source, and licensed under:
+- Icons: CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
+- Fonts: SIL OFL 1.1
+- Code: MIT
+
+Copyright Fonticons, Inc. (https://fontawesome.com)

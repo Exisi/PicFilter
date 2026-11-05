@@ -1,5 +1,5 @@
-import Load
-import MyImg
+import filter.Load as Load
+import filter.MyImg as MyImg
 from threading import Thread
 
 
@@ -68,14 +68,14 @@ def duplicate_start(self, mes, btn):
     :param mes: GUI.fist_tab.scrolledtext 程序运行的提示信息
     :param btn: GUI.fist_tab.Button 开始按钮
     '''
-    btn['state'] = 'disable'
+    btn.configure(state='disabled')
     if os_exist(self.inputname.get(), None):
         t1 = Thread(target=duplicate_removel, args=(self, mes, btn))
         t1.start()
     else:
         self.messagebox.showinfo(title='输入错误', message='文件路径不存在，请重新选择')
         self.inputname.set('')
-        btn['state'] = 'normal'
+        btn.configure(state='normal')
 
 
 def scale_start(self, mes, btn, im_type, max_scale, min_scale):
@@ -88,19 +88,19 @@ def scale_start(self, mes, btn, im_type, max_scale, min_scale):
     :param max_scale: 图片最大长宽比
     :param min_scale: 图片最小长宽比
     '''
-    btn['state'] = 'disable'
+    btn.configure(state='disabled')
     if os_exist(self.inputname.get(), self.outputname.get()):
         if self.inputname.get() == self.outputname.get():
             self.messagebox.showinfo(title='输入错误', message='文件输入路径与输出路径不能相同，请重新选择！')
             self.outputname.set('')
-            btn['state'] = 'normal'
+            btn.configure(state='normal')
         else:
             if max_scale.get() == '' or min_scale.get() == '':
                 self.messagebox.showinfo(title='输入错误', message='长宽比不能未空！')
-                btn['state'] = 'normal'
+                btn.configure(state='normal')
             elif float(max_scale.get()) < float(min_scale.get()):
                 self.messagebox.showinfo(title='输入错误', message='最大长宽比不能小于最小长宽比！')
-                btn['state'] = 'normal'
+                btn.configure(state='normal')
             else:
                 t1 = Thread(target=scale_selecter,
                             args=(self, mes, btn, im_type, float(max_scale.get()), float(min_scale.get())))
@@ -109,7 +109,7 @@ def scale_start(self, mes, btn, im_type, max_scale, min_scale):
         self.messagebox.showinfo(title='输入错误', message='文件路径不存在，请重新选择！')
         self.inputname.set('')
         self.outputname.set('')
-        btn['state'] = 'normal'
+        btn.configure(state='normal')
 
 
 def limit_start(self, mes, btn, limit):
@@ -120,40 +120,40 @@ def limit_start(self, mes, btn, limit):
     :param btn: GUI.third_tab.Button 开始按钮
     :param limit: 图片宽高限制的字典(maxH,minH,maxW,minW)
     '''
-    btn['state'] = 'disable'
+    btn.configure(state='disabled')
     if os_exist(self.inputname.get(), self.outputname.get()):
         if self.inputname.get() == self.outputname.get():
             self.messagebox.showinfo(title='输入错误', message='文件输入路径与输出路径不能相同，请重新选择！')
             self.outputname.set('')
-            btn['state'] = 'normal'
+            btn.configure(state='normal')
         else:
             text = limit['maxH'].get() + limit['minH'].get() + limit['maxW'].get() + limit['minW'].get()
             if limit['maxH'].get() == '' or limit['minH'].get() == '' or limit['maxW'].get() == '' or limit[
                 'minW'].get() == '':
                 self.messagebox.showinfo(title='输入错误', message='输入内容不能为空！')
-                btn['state'] = 'normal'
+                btn.configure(state='normal')
             else:
                 if text.isdigit():
                     if float(limit['maxH'].get()) < float(limit['minH'].get()) or float(limit['maxW'].get()) < float(
                             limit['minW'].get()):
                         self.messagebox.showinfo(title='输入错误', message='最大值不能小于最小值！')
-                        btn['state'] = 'normal'
+                        btn.configure(state='normal')
                     else:
                         if float(limit['maxH'].get()) > 99999 or float(limit['minH'].get()) > 99999 or float(
                                 limit['maxW'].get()) > 99999 or float(limit['minW'].get()) > 99999:
                             self.messagebox.showinfo(title='输入错误', message='数值过大！')
-                            btn['state'] = 'normal'
+                            btn.configure(state='normal')
                         else:
                             t1 = Thread(target=limit_seleter, args=(self, mes, btn, limit))
                             t1.start()
                 else:
                     self.messagebox.showinfo(title='输入错误', message='输入内容必须为正整数数字！')
-                    btn['state'] = 'normal'
+                    btn.configure(state='normal')
     else:
         self.messagebox.showinfo(title='输入错误', message='文件路径不存在，请重新选择！')
         self.inputname.set('')
         self.outputname.set('')
-        btn['state'] = 'normal'
+        btn.configure(state='normal')
 
 
 def classify_start(self, mes, btn, check):
@@ -164,16 +164,16 @@ def classify_start(self, mes, btn, check):
     :param btn: GUI.fourth_tab.Button 开始按钮
     :param check: 图片类型是否选择（方图/横图/竖图）
     '''
-    btn['state'] = 'disable'
+    btn.configure(state='disabled')
     if os_exist(self.inputname.get(), self.outputname.get()):
         if self.inputname.get() == self.outputname.get():
             self.messagebox.showinfo(title='输入错误', message='文件输入路径与输出路径不能相同，请重新选择！')
             self.outputname.set('')
-            btn['state'] = 'normal'
+            btn.configure(state='normal')
         else:
             if check[0].get() == check[1].get() == check[2].get() == 0:
                 self.messagebox.showinfo(title='选择错误', message='请至少选择一种图片类型！')
-                btn['state'] = 'normal'
+                btn.configure(state='normal')
             else:
                 t1 = Thread(target=classify_selecter, args=(self, mes, btn, check))
                 t1.start()
@@ -181,7 +181,7 @@ def classify_start(self, mes, btn, check):
         self.messagebox.showinfo(title='输入错误', message='文件路径不存在，请重新选择！')
         self.inputname.set('')
         self.outputname.set('')
-        btn['state'] = 'normal'
+        btn.configure(state='normal')
 
 
 def collection_start(self, mes, btn, check):
@@ -192,24 +192,24 @@ def collection_start(self, mes, btn, check):
     :param btn: GUI.fourth_tab.Button 开始按钮
     :param check: (inter,l_diff,r_diff,lr_diff) 集合选区的类型
     '''
-    btn['state'] = 'disable'
+    btn.configure(state='disabled')
     if os_exist(self.inputname.get(), self.outputname.get()) and os_exist(self._inputname.get(), None):
         if self.inputname.get() == self.outputname.get():
             self.messagebox.showinfo(title='输入错误', message='文件左输入路径和输出路径不能相同，请重新选择！')
             self.outputname.set('')
-            btn['state'] = 'normal'
+            btn.configure(state='normal')
         elif self._inputname.get() == self.outputname.get():
             self.messagebox.showinfo(title='输入错误', message='文件右输入路径和输出路径不能相同，请重新选择！')
             self.outputname.set('')
-            btn['state'] = 'normal'
+            btn.configure(state='normal')
         elif self.inputname.get() == self._inputname.get():
             self.messagebox.showinfo(title='输入错误', message='文件左输入路径和右输入路径不能相同，请重新选择！')
             self._inputname.set('')
-            btn['state'] = 'normal'
+            btn.configure(state='normal')
         else:
             if check[0].get() == check[1].get() == check[2].get() == check[3].get() == 0:
                 self.messagebox.showinfo(title='选择错误', message='请至少选择一种集合区间！')
-                btn['state'] = 'normal'
+                btn.configure(state='normal')
             else:
                 pass
                 t1 = Thread(target=collection_district, args=(self, mes, btn, check))
@@ -219,7 +219,7 @@ def collection_start(self, mes, btn, check):
         self.inputname.set('')
         self._inputname.set('')
         self.outputname.set('')
-        btn['state'] = 'normal'
+        btn.configure(state='normal')
 
 
 def duplicate_removel(self, mes, btn):
@@ -232,7 +232,7 @@ def duplicate_removel(self, mes, btn):
     files = Load.read(self.inputname.get())
     files = [f for f in files if MyImg.is_img(f)]
     hist_dict = {}
-    mes['state'] = 'normal'
+    mes.configure(state='normal')
     mes.delete('1.0', 'end')
     for f in files:
         if is_duplicate_img(f, hist_dict):
@@ -242,9 +242,9 @@ def duplicate_removel(self, mes, btn):
         mes.see('end')
         self.update_idletasks()
     mes.insert('end', '处理完成！')
-    mes['state'] = 'disable'
+    mes.configure(state='disabled')
     mes.see('end')
-    btn['state'] = 'normal'
+    btn.configure(state='normal')
 
 
 def scale_selecter(self, mes, btn, im_type, max_scale, min_scale):
@@ -259,7 +259,7 @@ def scale_selecter(self, mes, btn, im_type, max_scale, min_scale):
     '''
     files = Load.read(self.inputname.get())
     files = [f for f in files if MyImg.is_img(f)]
-    mes['state'] = 'normal'
+    mes.configure(state='normal')
     mes.delete('1.0', 'end')
     for f in files:
         if im_type == MyImg.wh_type(f) or im_type == 0:
@@ -273,9 +273,9 @@ def scale_selecter(self, mes, btn, im_type, max_scale, min_scale):
         mes.see('end')
         self.update_idletasks()
     mes.insert('end', '处理完成！')
-    mes['state'] = 'disable'
+    mes.configure(state='disabled')
     mes.see('end')
-    btn['state'] = 'normal'
+    btn.configure(state='normal')
 
 
 def limit_seleter(self, mes, btn, limit):
@@ -288,7 +288,7 @@ def limit_seleter(self, mes, btn, limit):
     '''
     files = Load.read(self.inputname.get())
     files = [f for f in files if MyImg.is_img(f)]
-    mes['state'] = 'normal'
+    mes.configure(state='normal')
     mes.delete('1.0', 'end')
     for f in files:
         if MyImg.wh_limitByWH(f, limit):
@@ -299,9 +299,9 @@ def limit_seleter(self, mes, btn, limit):
         mes.see('end')
         self.update_idletasks()
     mes.insert('end', '处理完成！')
-    mes['state'] = 'disable'
+    mes.configure(state='disabled')
     mes.see('end')
-    btn['state'] = 'normal'
+    btn.configure(state='normal')
 
 
 def classify_selecter(self, mes, btn, check):
@@ -314,7 +314,7 @@ def classify_selecter(self, mes, btn, check):
     '''
     files = Load.read(self.inputname.get())
     files = [f for f in files if MyImg.is_img(f)]
-    mes['state'] = 'normal'
+    mes.configure(state='normal')
     mes.delete('1.0', 'end')
     mes.insert('end', '处理中...\n\n')
 
@@ -325,9 +325,9 @@ def classify_selecter(self, mes, btn, check):
         im_type = MyImg.wh_type(f)
         Load.copy(f, self.outputname.get(), im_type)
     mes.insert('end', '处理完成！')
-    mes['state'] = 'disable'
+    mes.configure(state='disabled')
     mes.see('end')
-    btn['state'] = 'normal'
+    btn.configure(state='normal')
 
 
 def collection_district(self, mes, btn, check):
@@ -343,7 +343,7 @@ def collection_district(self, mes, btn, check):
     right_files = Load.read(self._inputname.get())
     left_files = [f for f in left_files if MyImg.is_img(f)]
     right_files = [f for f in right_files if MyImg.is_img(f)]
-    mes['state'] = 'normal'
+    mes.configure(state='normal')
     mes.delete('1.0', 'end')
     mes.insert('end', '处理中...\n\n')
 
@@ -382,6 +382,6 @@ def collection_district(self, mes, btn, check):
             Load._copy(f, self.outputname.get() + '/对称差集/')
 
     mes.insert('end', '处理完成！')
-    mes['state'] = 'disable'
+    mes.configure(state='disabled')
     mes.see('end')
-    btn['state'] = 'normal'
+    btn.configure(state='normal')
