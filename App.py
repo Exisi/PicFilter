@@ -15,7 +15,7 @@ import customtkinter as ctk
 from PIL import Image
 
 from filter import Filter
-from utils import I18n
+from utils import I18n, Settings
 from utils.Icon import Icon
 
 FONT_FAMILY = 'Microsoft YaHei UI'
@@ -23,8 +23,6 @@ PROJECT_URL = 'https://github.com/Exisi/PicFilter'
 UPDATE_API_URL = 'https://api.github.com/repos/Exisi/PicFilter/releases/latest'
 
 IMAGE_TYPE_KEYS = ('all', 'horizontal', 'vertical')
-
-THEME_KEYS = ('system', 'light', 'dark')
 
 NAV_PAGES = ('duplicate', 'ratio', 'size', 'classify', 'collection', 'about')
 
@@ -55,6 +53,15 @@ ICON_SIZE = (18, 18)
 
 SIDEBAR_WIDTH = 216
 
+ACCENT = ('#2563eb', '#3b82f6')
+ACCENT_HOVER = ('#1d4ed8', '#60a5fa')
+NAV_TEXT = ('#1f2328', '#e8eaed')
+NAV_SELECTED_BG = ('#dce9fe', '#243752')
+NAV_SELECTED_TEXT = ('#1d4ed8', '#93c5fd')
+NAV_HOVER_BG = ('#e9f1fe', '#2d3f58')
+SEGMENTED_UNSELECTED = ('gray90', 'gray22')
+SEGMENTED_UNSELECTED_HOVER = ('gray84', 'gray28')
+
 
 def _image_type_labels():
     return [I18n.tr('image_type.' + key) for key in IMAGE_TYPE_KEYS]
@@ -76,7 +83,8 @@ class App(ctk.CTk):
 
         I18n.load_language()
         self.version = _load_version()
-        self.theme_key = 'system'
+        saved_theme = Settings.load().get('appearance')
+        self.theme_key = saved_theme if saved_theme in ('light', 'dark') else 'system'
         self.icon_path = os.path.join(tempfile.gettempdir(), 'picfilter.ico')
 
         ctk.set_appearance_mode(self.theme_key)
@@ -135,16 +143,19 @@ class App(ctk.CTk):
         y = int((screen_h - self.h) / 2)
         self.geometry('{}x{}+{}+{}'.format(self.w, self.h, x, y))
 
-    def _change_theme(self, value):
-        for key in THEME_KEYS:
-            if I18n.tr('theme.' + key) == value:
-                self.theme_key = key
-                ctk.set_appearance_mode(key)
-                return
+    def _theme_icon(self):
+        mode = 'moon' if ctk.get_appearance_mode() == 'Dark' else 'sun'
+        return self._create_icon(mode, size=(20, 20))
 
-    def _change_language(self, value):
+    def _toggle_theme(self):
+        self.theme_key = 'light' if ctk.get_appearance_mode() == 'Dark' else 'dark'
+        ctk.set_appearance_mode(self.theme_key)
+        Settings.save('appearance', self.theme_key)
+        self.theme_button.configure(image=self._theme_icon())
+
+    def _select_language(self, label):
         language = next(
-            (code for code, label in I18n.LANGUAGE_LABELS.items() if label == value),
+            (code for code, text in I18n.LANGUAGE_LABELS.items() if text == label),
             None,
         )
         if language is None or language == I18n.get_language():
@@ -167,8 +178,8 @@ class App(ctk.CTk):
             self.menu_button.configure(image=self._create_icon('bars'))
         self.show_page(page)
 
-    def _create_icon(self, name, active=False):
-        key = (name, active)
+    def _create_icon(self, name, active=False, size=ICON_SIZE):
+        key = (name, active, size)
         if key not in self._icon_cache:
             suffix = '-active' if active else ''
             light = Image.open(
@@ -178,7 +189,7 @@ class App(ctk.CTk):
                 os.path.join(ICON_DIR, '{}{}-dark.png'.format(name, suffix))
             )
             self._icon_cache[key] = ctk.CTkImage(
-                light_image=light, dark_image=dark, size=ICON_SIZE
+                light_image=light, dark_image=dark, size=size
             )
         return self._icon_cache[key]
 
@@ -242,8 +253,8 @@ class App(ctk.CTk):
                 height=38,
                 corner_radius=8,
                 fg_color='transparent',
-                hover_color=('gray85', 'gray26'),
-                text_color=('gray10', 'gray90'),
+                hover_color=NAV_HOVER_BG,
+                text_color=NAV_TEXT,
                 font=self.font_body,
                 command=lambda page=name: self.show_page(page),
             )
@@ -252,41 +263,58 @@ class App(ctk.CTk):
 
         footer = ctk.CTkFrame(self.sidebar, fg_color='transparent')
         footer.grid(row=3, column=0, sticky='ew', padx=14, pady=(10, 18))
+        footer.grid_columnconfigure(0, weight=1)
+
+        language_row = ctk.CTkFrame(footer, fg_color='transparent')
+        language_row.grid(row=0, column=0, sticky='ew')
         ctk.CTkLabel(
-            footer,
+            language_row,
             text=I18n.tr('sidebar.language'),
             font=self.font_subtitle,
             text_color=('gray45', 'gray60'),
             anchor='w',
-        ).pack(anchor='w', pady=(0, 6))
-        language_switch = ctk.CTkSegmentedButton(
-            footer,
+        ).pack(side='left')
+        self.language_menu = ctk.CTkOptionMenu(
+            language_row,
+            width=104,
+            height=32,
+            corner_radius=8,
             values=list(I18n.LANGUAGE_LABELS.values()),
-            width=SIDEBAR_WIDTH - 28,
-            height=30,
+            command=self._select_language,
+            fg_color=SEGMENTED_UNSELECTED,
+            button_color=SEGMENTED_UNSELECTED,
+            button_hover_color=SEGMENTED_UNSELECTED_HOVER,
+            text_color=NAV_TEXT,
             font=self.font_subtitle,
-            command=self._change_language,
+            dropdown_fg_color=SEGMENTED_UNSELECTED,
+            dropdown_hover_color=NAV_HOVER_BG,
+            dropdown_text_color=NAV_TEXT,
+            dropdown_font=self.font_subtitle,
         )
-        language_switch.set(I18n.LANGUAGE_LABELS[I18n.get_language()])
-        language_switch.pack(anchor='w', pady=(0, 14))
+        self.language_menu.set(I18n.LANGUAGE_LABELS[I18n.get_language()])
+        self.language_menu.pack(side='right')
 
+        theme_row = ctk.CTkFrame(footer, fg_color='transparent')
+        theme_row.grid(row=1, column=0, sticky='ew', pady=(8, 0))
         ctk.CTkLabel(
-            footer,
+            theme_row,
             text=I18n.tr('sidebar.appearance'),
             font=self.font_subtitle,
             text_color=('gray45', 'gray60'),
             anchor='w',
-        ).pack(anchor='w', pady=(0, 6))
-        theme_switch = ctk.CTkSegmentedButton(
-            footer,
-            values=[I18n.tr('theme.' + key) for key in THEME_KEYS],
-            width=SIDEBAR_WIDTH - 28,
-            height=30,
-            font=self.font_subtitle,
-            command=self._change_theme,
+        ).pack(side='left')
+        self.theme_button = ctk.CTkButton(
+            theme_row,
+            width=32,
+            height=32,
+            corner_radius=8,
+            text='',
+            image=self._theme_icon(),
+            fg_color='transparent',
+            hover_color=NAV_HOVER_BG,
+            command=self._toggle_theme,
         )
-        theme_switch.set(I18n.tr('theme.' + self.theme_key))
-        theme_switch.pack(anchor='w')
+        self.theme_button.pack(side='right')
 
     def toggle_sidebar(self):
         page = self.pages.get(self.current_page)
@@ -320,11 +348,11 @@ class App(ctk.CTk):
             topbar,
             text='',
             image=self._create_icon('chevron-left'),
-            width=38,
+            width=32,
             height=32,
             corner_radius=8,
-            fg_color=('gray85', 'gray25'),
-            hover_color=('gray78', 'gray32'),
+            fg_color='transparent',
+            hover_color=NAV_HOVER_BG,
             command=self.toggle_sidebar,
         )
         self.menu_button.grid(row=0, column=0, sticky='w')
@@ -380,7 +408,8 @@ class App(ctk.CTk):
                 continue
             selected = page_name == name
             self.nav_buttons[page_name].configure(
-                fg_color=('gray78', 'gray30') if selected else 'transparent',
+                fg_color=NAV_SELECTED_BG if selected else 'transparent',
+                text_color=NAV_SELECTED_TEXT if selected else NAV_TEXT,
                 image=self._create_icon(NAV_ICON_FILES[page_name], active=selected),
             )
 
@@ -416,6 +445,8 @@ class App(ctk.CTk):
             text=I18n.tr('button.browse'),
             width=64,
             height=34,
+            fg_color=ACCENT,
+            hover_color=ACCENT_HOVER,
             font=self.font_body,
             command=browse_command,
         ).grid(row=0, column=2, padx=(8, 0))
@@ -480,6 +511,8 @@ class App(ctk.CTk):
             width=136,
             height=38,
             corner_radius=10,
+            fg_color=ACCENT,
+            hover_color=ACCENT_HOVER,
             font=self.font_button,
             command=command,
         )
@@ -517,6 +550,11 @@ class App(ctk.CTk):
             values=labels,
             width=110,
             height=34,
+            fg_color=SEGMENTED_UNSELECTED,
+            button_color=ACCENT,
+            button_hover_color=ACCENT_HOVER,
+            dropdown_fg_color=SEGMENTED_UNSELECTED,
+            dropdown_hover_color=NAV_HOVER_BG,
             font=self.font_body,
         )
         image_type.set(labels[0])
@@ -607,6 +645,8 @@ class App(ctk.CTk):
                 font=self.font_body,
                 checkbox_width=22,
                 checkbox_height=22,
+                fg_color=ACCENT,
+                hover_color=ACCENT_HOVER,
             ).grid(row=0, column=index, sticky='w', padx=(16 if index == 0 else 20, 0), pady=12)
         check = [horizontal, vertical, square]
 
@@ -647,6 +687,8 @@ class App(ctk.CTk):
                 font=self.font_body,
                 checkbox_width=22,
                 checkbox_height=22,
+                fg_color=ACCENT,
+                hover_color=ACCENT_HOVER,
             ).grid(row=0, column=index, sticky='w', padx=(16 if index == 0 else 18, 0), pady=12)
         check = [intersection, left_diff, right_diff, symmetry_diff]
 
@@ -684,7 +726,7 @@ class App(ctk.CTk):
             height=26,
             corner_radius=6,
             fg_color='transparent',
-            hover_color=('gray85', 'gray28'),
+            hover_color=NAV_HOVER_BG,
             command=self._check_update,
         )
         self.update_action.pack(side='left', padx=(10, 0))
@@ -735,7 +777,7 @@ class App(ctk.CTk):
             width=400,
             height=32,
             fg_color='transparent',
-            hover_color=('gray85', 'gray28'),
+            hover_color=NAV_HOVER_BG,
             text_color=('#1f6feb', '#58a6ff'),
             font=self.font_body,
             command=lambda: webbrowser.open(PROJECT_URL),
