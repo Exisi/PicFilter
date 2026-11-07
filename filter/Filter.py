@@ -1,15 +1,20 @@
-import filter.Load as Load
-import filter.MyImg as MyImg
+import queue
+import tkinter as tk
 from threading import Thread
 
+import filter.Load as Load
+import filter.Image as Image
 from utils import I18n
+
+LOG_FLUSH_INTERVAL_MS = 80
+LOG_FLUSH_BATCH = 200
 
 
 def os_exist(in_dir, out_dir):
     '''
-    判断图片输入输出路径是否存在
-    :param in_dir: 图片输入目录
-    :param out_dir 图片输出路径
+    Check whether the input and output paths exist
+    :param in_dir: image input directory
+    :param out_dir: image output path
     '''
     if out_dir is None:
         out_dir = in_dir
@@ -21,10 +26,11 @@ def os_exist(in_dir, out_dir):
 
 def is_duplicate_img(f, hist_dict):
     '''
-    图片去重，利用字典和图片像素直方图的唯一值，确定重复
-    :param files: 图片列表
+    Detect duplicates using a dictionary keyed by the unique image pixel histogram
+    :param f: image path
+    :param hist_dict: histogram dictionary of already processed images
     '''
-    hist = str(MyImg.hist(f))
+    hist = str(Image.hist(f))
     if hist not in hist_dict:
         hist_dict[hist] = f
         return False
@@ -35,15 +41,14 @@ def is_duplicate_img(f, hist_dict):
 
 def get_intersection(files, hist_dict):
     '''
-    取出图片集合间的交集
-    :param files: 图片列表
-    :param hist_dict: 图片列表直方图数组
-    :param inter_hist_dict: 交集集合字典
+    Return the intersection between image sets
+    :param files: list of images
+    :param hist_dict: histogram dictionary of the image list
     :return: dict
     '''
     inter_hist_dict = {}
     for f in files:
-        hist = str(MyImg.hist(f))
+        hist = str(Image.hist(f))
         if (hist in hist_dict):
             inter_hist_dict[hist] = f
     return inter_hist_dict
@@ -51,9 +56,9 @@ def get_intersection(files, hist_dict):
 
 def get_difference(hist_dict, inter_dict):
     '''
-    获取单个集合的差集
-    :param hist_dict: 左集合的图片直方图字典
-    :param inter_dict: 差集
+    Return the difference of a single set
+    :param hist_dict: histogram dictionary of the left set
+    :param inter_dict: intersection dictionary
     :return: list
     '''
     diff_dict = []
@@ -63,327 +68,417 @@ def get_difference(hist_dict, inter_dict):
     return diff_dict
 
 
+def _image_files(directory):
+    '''
+    Read the directory and keep only image files
+    :param directory: image directory
+    :return: list
+    '''
+    return [f for f in Load.read(directory) if Image.is_img(f)]
+
+
+def _for_each(files, handler, report):
+    '''
+    Process images one by one; log a failure and continue with the remaining images
+    :param files: list of images
+    :param handler: handler for a single image
+    :param report: log callback
+    '''
+    for f in files:
+        try:
+            handler(f)
+        except Exception as exc:  # a single failed image must not abort the whole batch
+            report(I18n.tr('log.file_failed', name=Load.name(f), error=exc))
+
+
+def _widget_alive(widget):
+    '''
+    Check whether a Tk widget still exists (old widgets are destroyed when the UI is rebuilt)
+    :param widget: Tk widget
+    :return: bool
+    '''
+    try:
+        return bool(widget.winfo_exists())
+    except tk.TclError:
+        return False
+
+
+def _start_job(widget, log_box, button, work):
+    '''
+    Run an image-processing job on a background thread; all Tk widget access stays on the main thread.
+
+    :param widget: Tk window (used for after scheduling)
+    :param log_box: log text box
+    :param button: start button
+    :param work: processing function with signature work(report); report(str) writes to the log
+    '''
+    button.configure(state='disabled')
+    log_box.configure(state='normal')
+    log_box.delete('1.0', 'end')
+
+    messages = queue.Queue()
+
+    def report(text):
+        messages.put(text)
+
+    def worker():
+        try:
+            work(report)
+        except Exception as exc:  # safety net: the button must be restored on any exception
+            messages.put(I18n.tr('log.job_failed', error=exc))
+        finally:
+            messages.put(None)
+
+    def poll():
+        if not _widget_alive(log_box):
+            return
+        try:
+            batch = []
+            finished = False
+            while len(batch) < LOG_FLUSH_BATCH:
+                try:
+                    item = messages.get_nowait()
+                except queue.Empty:
+                    break
+                if item is None:
+                    finished = True
+                    break
+                batch.append(item)
+            if batch:
+                log_box.insert('end', ''.join(batch))
+                log_box.see('end')
+            if finished:
+                log_box.configure(state='disabled')
+                button.configure(state='normal')
+                return
+            widget.after(LOG_FLUSH_INTERVAL_MS, poll)
+        except tk.TclError:
+            pass
+
+    try:
+        Thread(target=worker, daemon=True).start()
+    except Exception as exc:
+        messages.put(I18n.tr('log.job_failed', error=exc))
+        messages.put(None)
+    widget.after(LOG_FLUSH_INTERVAL_MS, poll)
+
+
 def duplicate_start(self, mes, btn):
     '''
-    图片去重的启动方法，检测输入的值是否正确
-    :param self: GUI.App类属性
-    :param mes: GUI.fist_tab.scrolledtext 程序运行的提示信息
-    :param btn: GUI.fist_tab.Button 开始按钮
+    Start the duplicate-removal job and validate the input
+    :param self: GUI.App instance
+    :param mes: GUI.fist_tab.scrolledtext progress messages
+    :param btn: GUI.fist_tab.Button start button
     '''
-    btn.configure(state='disabled')
-    if os_exist(self.inputname.get(), None):
-        t1 = Thread(target=duplicate_removel, args=(self, mes, btn))
-        t1.start()
+    input_dir = self.inputname.get()
+    if os_exist(input_dir, None):
+        _start_job(self, mes, btn, lambda report: duplicate_removel(input_dir, report))
     else:
         self.messagebox.showinfo(title=I18n.tr('error.title.input'), message=I18n.tr('error.path_missing'))
         self.inputname.set('')
-        btn.configure(state='normal')
 
 
 def scale_start(self, mes, btn, im_type, max_scale, min_scale):
     '''
-    长宽比限制筛选的启动方法，检测输入的值是否正确
-    :param self: GUI.App类属性
-    :param mes: GUI.second_tab.scrolledtext 程序运行的提示信息
-    :param btn: GUI.second_tab.Button 开始按钮
-    :param im_type: 图片类型（全部/横图/竖图）
-    :param max_scale: 图片最大长宽比
-    :param min_scale: 图片最小长宽比
+    Start the aspect-ratio filter job and validate the input
+    :param self: GUI.App instance
+    :param mes: GUI.second_tab.scrolledtext progress messages
+    :param btn: GUI.second_tab.Button start button
+    :param im_type: image type (all/landscape/portrait)
+    :param max_scale: maximum image aspect ratio
+    :param min_scale: minimum image aspect ratio
     '''
-    btn.configure(state='disabled')
-    if os_exist(self.inputname.get(), self.outputname.get()):
-        if self.inputname.get() == self.outputname.get():
-            self.messagebox.showinfo(title=I18n.tr('error.title.input'), message=I18n.tr('error.same_in_out'))
-            self.outputname.set('')
-            btn.configure(state='normal')
-        else:
-            if max_scale.get() == '' or min_scale.get() == '':
-                self.messagebox.showinfo(title=I18n.tr('error.title.input'), message=I18n.tr('error.ratio_empty'))
-                btn.configure(state='normal')
-            elif float(max_scale.get()) < float(min_scale.get()):
-                self.messagebox.showinfo(title=I18n.tr('error.title.input'), message=I18n.tr('error.ratio_order'))
-                btn.configure(state='normal')
-            else:
-                t1 = Thread(target=scale_selecter,
-                            args=(self, mes, btn, im_type, float(max_scale.get()), float(min_scale.get())))
-                t1.start()
-    else:
+    input_dir = self.inputname.get()
+    output_dir = self.outputname.get()
+    if not os_exist(input_dir, output_dir):
         self.messagebox.showinfo(title=I18n.tr('error.title.input'), message=I18n.tr('error.path_missing'))
         self.inputname.set('')
         self.outputname.set('')
-        btn.configure(state='normal')
+        return
+    if input_dir == output_dir:
+        self.messagebox.showinfo(title=I18n.tr('error.title.input'), message=I18n.tr('error.same_in_out'))
+        self.outputname.set('')
+        return
+
+    max_text = max_scale.get()
+    min_text = min_scale.get()
+    if max_text == '' or min_text == '':
+        self.messagebox.showinfo(title=I18n.tr('error.title.input'), message=I18n.tr('error.ratio_empty'))
+        return
+    try:
+        max_value = float(max_text)
+        min_value = float(min_text)
+    except ValueError:
+        self.messagebox.showinfo(title=I18n.tr('error.title.input'), message=I18n.tr('validation.number'))
+        return
+    if max_value < min_value:
+        self.messagebox.showinfo(title=I18n.tr('error.title.input'), message=I18n.tr('error.ratio_order'))
+        return
+
+    _start_job(
+        self,
+        mes,
+        btn,
+        lambda report: scale_selecter(input_dir, output_dir, im_type, max_value, min_value, report),
+    )
 
 
 def limit_start(self, mes, btn, limit):
     '''
-    长宽大小限制的启动方法，检测输入的值是否正确
-    :param self: GUI.App类属性
-    :param mes: GUI.third_tab.scrolledtext 程序运行的提示信息
-    :param btn: GUI.third_tab.Button 开始按钮
-    :param limit: 图片宽高限制的字典(maxH,minH,maxW,minW)
+    Start the width/height filter job and validate the input
+    :param self: GUI.App instance
+    :param mes: GUI.third_tab.scrolledtext progress messages
+    :param btn: GUI.third_tab.Button start button
+    :param limit: width and height limits dictionary (maxH,minH,maxW,minW)
     '''
-    btn.configure(state='disabled')
-    if os_exist(self.inputname.get(), self.outputname.get()):
-        if self.inputname.get() == self.outputname.get():
-            self.messagebox.showinfo(title=I18n.tr('error.title.input'), message=I18n.tr('error.same_in_out'))
-            self.outputname.set('')
-            btn.configure(state='normal')
-        else:
-            text = limit['maxH'].get() + limit['minH'].get() + limit['maxW'].get() + limit['minW'].get()
-            if limit['maxH'].get() == '' or limit['minH'].get() == '' or limit['maxW'].get() == '' or limit[
-                'minW'].get() == '':
-                self.messagebox.showinfo(title=I18n.tr('error.title.input'), message=I18n.tr('error.value_empty'))
-                btn.configure(state='normal')
-            else:
-                if text.isdigit():
-                    if float(limit['maxH'].get()) < float(limit['minH'].get()) or float(limit['maxW'].get()) < float(
-                            limit['minW'].get()):
-                        self.messagebox.showinfo(title=I18n.tr('error.title.input'), message=I18n.tr('error.limit_order'))
-                        btn.configure(state='normal')
-                    else:
-                        if float(limit['maxH'].get()) > 99999 or float(limit['minH'].get()) > 99999 or float(
-                                limit['maxW'].get()) > 99999 or float(limit['minW'].get()) > 99999:
-                            self.messagebox.showinfo(title=I18n.tr('error.title.input'), message=I18n.tr('error.too_large'))
-                            btn.configure(state='normal')
-                        else:
-                            t1 = Thread(target=limit_seleter, args=(self, mes, btn, limit))
-                            t1.start()
-                else:
-                    self.messagebox.showinfo(title=I18n.tr('error.title.input'), message=I18n.tr('error.positive_integer'))
-                    btn.configure(state='normal')
-    else:
+    input_dir = self.inputname.get()
+    output_dir = self.outputname.get()
+    if not os_exist(input_dir, output_dir):
         self.messagebox.showinfo(title=I18n.tr('error.title.input'), message=I18n.tr('error.path_missing'))
         self.inputname.set('')
         self.outputname.set('')
-        btn.configure(state='normal')
+        return
+    if input_dir == output_dir:
+        self.messagebox.showinfo(title=I18n.tr('error.title.input'), message=I18n.tr('error.same_in_out'))
+        self.outputname.set('')
+        return
+
+    raw = {key: var.get() for key, var in limit.items()}
+    if any(value == '' for value in raw.values()):
+        self.messagebox.showinfo(title=I18n.tr('error.title.input'), message=I18n.tr('error.value_empty'))
+        return
+    if not all(value.isdigit() for value in raw.values()):
+        self.messagebox.showinfo(title=I18n.tr('error.title.input'), message=I18n.tr('validation.positive_integer'))
+        return
+
+    values = {key: int(value) for key, value in raw.items()}
+    if values['maxH'] < values['minH'] or values['maxW'] < values['minW']:
+        self.messagebox.showinfo(title=I18n.tr('error.title.input'), message=I18n.tr('error.limit_order'))
+        return
+    if any(value > 99999 for value in values.values()):
+        self.messagebox.showinfo(title=I18n.tr('error.title.input'), message=I18n.tr('error.too_large'))
+        return
+
+    _start_job(self, mes, btn, lambda report: limit_seleter(input_dir, output_dir, values, report))
 
 
 def classify_start(self, mes, btn, check):
     '''
-    图片分类的启动方法，检测输入的值是否正确
-    :param self: GUI.App类属性
-    :param mes: GUI.fourth_tab.scrolledtext 程序运行的提示信息
-    :param btn: GUI.fourth_tab.Button 开始按钮
-    :param check: 图片类型是否选择（方图/横图/竖图）
+    Start the image classification job and validate the input
+    :param self: GUI.App instance
+    :param mes: GUI.fourth_tab.scrolledtext progress messages
+    :param btn: GUI.fourth_tab.Button start button
+    :param check: image types to include (square/landscape/portrait)
     '''
-    btn.configure(state='disabled')
-    if os_exist(self.inputname.get(), self.outputname.get()):
-        if self.inputname.get() == self.outputname.get():
-            self.messagebox.showinfo(title=I18n.tr('error.title.input'), message=I18n.tr('error.same_in_out'))
-            self.outputname.set('')
-            btn.configure(state='normal')
-        else:
-            if check[0].get() == check[1].get() == check[2].get() == 0:
-                self.messagebox.showinfo(title=I18n.tr('error.title.selection'), message=I18n.tr('error.select_type'))
-                btn.configure(state='normal')
-            else:
-                t1 = Thread(target=classify_selecter, args=(self, mes, btn, check))
-                t1.start()
-    else:
+    input_dir = self.inputname.get()
+    output_dir = self.outputname.get()
+    if not os_exist(input_dir, output_dir):
         self.messagebox.showinfo(title=I18n.tr('error.title.input'), message=I18n.tr('error.path_missing'))
         self.inputname.set('')
         self.outputname.set('')
-        btn.configure(state='normal')
+        return
+    if input_dir == output_dir:
+        self.messagebox.showinfo(title=I18n.tr('error.title.input'), message=I18n.tr('error.same_in_out'))
+        self.outputname.set('')
+        return
+
+    checks = tuple(int(var.get()) for var in check)
+    if all(value == 0 for value in checks):
+        self.messagebox.showinfo(title=I18n.tr('error.title.selection'), message=I18n.tr('error.select_type'))
+        return
+
+    _start_job(self, mes, btn, lambda report: classify_selecter(input_dir, output_dir, checks, report))
 
 
 def collection_start(self, mes, btn, check):
     '''
-    图片分类的启动方法，检测输入的值是否正确
-    :param self: GUI.App类属性
-    :param mes: GUI.fourth_tab.scrolledtext 程序运行的提示信息
-    :param btn: GUI.fourth_tab.Button 开始按钮
-    :param check: (inter,l_diff,r_diff,lr_diff) 集合选区的类型
+    Start the set-operation job and validate the input
+    :param self: GUI.App instance
+    :param mes: GUI.fourth_tab.scrolledtext progress messages
+    :param btn: GUI.fourth_tab.Button start button
+    :param check: set operation types (inter,l_diff,r_diff,lr_diff)
     '''
-    btn.configure(state='disabled')
-    if os_exist(self.inputname.get(), self.outputname.get()) and os_exist(self._inputname.get(), None):
-        if self.inputname.get() == self.outputname.get():
-            self.messagebox.showinfo(title=I18n.tr('error.title.input'), message=I18n.tr('error.left_same_out'))
-            self.outputname.set('')
-            btn.configure(state='normal')
-        elif self._inputname.get() == self.outputname.get():
-            self.messagebox.showinfo(title=I18n.tr('error.title.input'), message=I18n.tr('error.right_same_out'))
-            self.outputname.set('')
-            btn.configure(state='normal')
-        elif self.inputname.get() == self._inputname.get():
-            self.messagebox.showinfo(title=I18n.tr('error.title.input'), message=I18n.tr('error.left_same_right'))
-            self._inputname.set('')
-            btn.configure(state='normal')
-        else:
-            if check[0].get() == check[1].get() == check[2].get() == check[3].get() == 0:
-                self.messagebox.showinfo(title=I18n.tr('error.title.selection'), message=I18n.tr('error.select_set'))
-                btn.configure(state='normal')
-            else:
-                pass
-                t1 = Thread(target=collection_district, args=(self, mes, btn, check))
-                t1.start()
-    else:
+    left_dir = self.inputname.get()
+    right_dir = self._inputname.get()
+    output_dir = self.outputname.get()
+    if not (os_exist(left_dir, output_dir) and os_exist(right_dir, None)):
         self.messagebox.showinfo(title=I18n.tr('error.title.input'), message=I18n.tr('error.path_missing'))
         self.inputname.set('')
         self._inputname.set('')
         self.outputname.set('')
-        btn.configure(state='normal')
+        return
+    if left_dir == output_dir:
+        self.messagebox.showinfo(title=I18n.tr('error.title.input'), message=I18n.tr('error.left_same_out'))
+        self.outputname.set('')
+        return
+    if right_dir == output_dir:
+        self.messagebox.showinfo(title=I18n.tr('error.title.input'), message=I18n.tr('error.right_same_out'))
+        self.outputname.set('')
+        return
+    if left_dir == right_dir:
+        self.messagebox.showinfo(title=I18n.tr('error.title.input'), message=I18n.tr('error.left_same_right'))
+        self._inputname.set('')
+        return
+
+    checks = tuple(int(var.get()) for var in check)
+    if all(value == 0 for value in checks):
+        self.messagebox.showinfo(title=I18n.tr('error.title.selection'), message=I18n.tr('error.select_set'))
+        return
+
+    _start_job(
+        self,
+        mes,
+        btn,
+        lambda report: collection_district(left_dir, right_dir, output_dir, checks, report),
+    )
 
 
-def duplicate_removel(self, mes, btn):
+def duplicate_removel(input_dir, report):
     '''
-    移除重复的图片
-    :param self: GUI.App类属性
-    :param mes: GUI.fist_tab.scrolledtext 程序运行的提示信息
-    :param btn: GUI.fist_tab.Button 开始按钮
+    Remove duplicate images
+    :param input_dir: image input directory
+    :param report: log callback
     '''
-    files = Load.read(self.inputname.get())
-    files = [f for f in files if MyImg.is_img(f)]
+    files = _image_files(input_dir)
     hist_dict = {}
-    mes.configure(state='normal')
-    mes.delete('1.0', 'end')
-    for f in files:
+
+    def handle(f):
         if is_duplicate_img(f, hist_dict):
-            mes.insert('end', I18n.tr('log.duplicate_deleted', name=Load.name(f)))
+            report(I18n.tr('log.duplicate_deleted', name=Load.name(f)))
         else:
-            mes.insert('end', I18n.tr('log.no_duplicate'))
-        mes.see('end')
-        self.update_idletasks()
-    mes.insert('end', I18n.tr('log.done'))
-    mes.configure(state='disabled')
-    mes.see('end')
-    btn.configure(state='normal')
+            report(I18n.tr('log.no_duplicate'))
+
+    _for_each(files, handle, report)
+    report(I18n.tr('log.done'))
 
 
-def scale_selecter(self, mes, btn, im_type, max_scale, min_scale):
+def scale_selecter(input_dir, output_dir, im_type, max_scale, min_scale, report):
     '''
-    筛选出符合长宽比的图片
-    :param self: GUI.App类属性
-    :param mes: GUI.second_tab.scrolledtext 程序运行的提示信息
-    :param btn: GUI.second_tab.Button 开始按钮
-    :param im_type: 图片类型（全部/横图/竖图）
-    :param max_scale: 最大长宽比
-    :param min_scale: 最小长宽比
+    Copy images matching the aspect ratio
+    :param input_dir: image input directory
+    :param output_dir: image output path
+    :param im_type: image type (all/landscape/portrait)
+    :param max_scale: maximum aspect ratio
+    :param min_scale: minimum aspect ratio
+    :param report: log callback
     '''
-    files = Load.read(self.inputname.get())
-    files = [f for f in files if MyImg.is_img(f)]
-    mes.configure(state='normal')
-    mes.delete('1.0', 'end')
-    for f in files:
-        if im_type == MyImg.wh_type(f) or im_type == 0:
-            if MyImg.wh_limitByPor(f, max_scale, min_scale):
-                Load.full_copy(f, self.outputname.get())
-                mes.insert('end', I18n.tr('log.matched', name=Load.name(f)))
+    files = _image_files(input_dir)
+
+    def handle(f):
+        if im_type == Image.wh_type(f) or im_type == 0:
+            if Image.wh_limitByPor(f, max_scale, min_scale):
+                Load.full_copy(f, output_dir)
+                report(I18n.tr('log.matched', name=Load.name(f)))
             else:
-                mes.insert('end', I18n.tr('log.not_matched'))
+                report(I18n.tr('log.not_matched'))
         else:
-            mes.insert('end', I18n.tr('log.not_matched'))
-        mes.see('end')
-        self.update_idletasks()
-    mes.insert('end', I18n.tr('log.done'))
-    mes.configure(state='disabled')
-    mes.see('end')
-    btn.configure(state='normal')
+            report(I18n.tr('log.not_matched'))
+
+    _for_each(files, handle, report)
+    report(I18n.tr('log.done'))
 
 
-def limit_seleter(self, mes, btn, limit):
+def limit_seleter(input_dir, output_dir, limit, report):
     '''
-    筛选出符合最大最小长宽值的图片
-    :param self: GUI.App类属性
-    :param mes: GUI.third_tab.scrolledtext 程序运行的提示信息
-    :param btn: GUI.third_tab.Button 开始按钮
-    :param limit: 图片宽高限制的字典(maxH,minH,maxW,minW)
+    Copy images matching the width and height limits
+    :param input_dir: image input directory
+    :param output_dir: image output path
+    :param limit: width and height limits dictionary (maxH,minH,maxW,minW)
+    :param report: log callback
     '''
-    files = Load.read(self.inputname.get())
-    files = [f for f in files if MyImg.is_img(f)]
-    mes.configure(state='normal')
-    mes.delete('1.0', 'end')
-    for f in files:
-        if MyImg.wh_limitByWH(f, limit):
-            Load.full_copy(f, self.outputname.get())
-            mes.insert('end', I18n.tr('log.matched', name=Load.name(f)))
+    files = _image_files(input_dir)
+
+    def handle(f):
+        if Image.wh_limitByWH(f, limit):
+            Load.full_copy(f, output_dir)
+            report(I18n.tr('log.matched', name=Load.name(f)))
         else:
-            mes.insert('end', I18n.tr('log.not_matched'))
-        mes.see('end')
-        self.update_idletasks()
-    mes.insert('end', I18n.tr('log.done'))
-    mes.configure(state='disabled')
-    mes.see('end')
-    btn.configure(state='normal')
+            report(I18n.tr('log.not_matched'))
+
+    _for_each(files, handle, report)
+    report(I18n.tr('log.done'))
 
 
-def classify_selecter(self, mes, btn, check):
+def classify_selecter(input_dir, output_dir, checks, report):
     '''
-    图片类型分类
-    :param self: GUI.App类属性
-    :param mes: GUI.fourth_tab.scrolledtext 程序运行的提示信息
-    :param btn: GUI.fourth_tab.Button 开始按钮
-    :param im_type: 图片类型（方图/横图/竖图）
+    Classify images by type
+    :param input_dir: image input directory
+    :param output_dir: image output path
+    :param checks: image types to include (landscape/portrait/square)
+    :param report: log callback
     '''
-    files = Load.read(self.inputname.get())
-    files = [f for f in files if MyImg.is_img(f)]
-    mes.configure(state='normal')
-    mes.delete('1.0', 'end')
-    mes.insert('end', I18n.tr('log.processing'))
+    files = _image_files(input_dir)
+    report(I18n.tr('log.processing'))
 
-    if check[0].get() == 1: Load.create_folder(self.outputname.get() + '/' + I18n.type_folder(1))
-    if check[1].get() == 1: Load.create_folder(self.outputname.get() + '/' + I18n.type_folder(2))
-    if check[2].get() == 1: Load.create_folder(self.outputname.get() + '/' + I18n.type_folder(0))
-    for f in files:
-        im_type = MyImg.wh_type(f)
-        Load.copy(f, self.outputname.get(), im_type)
-    mes.insert('end', I18n.tr('log.done'))
-    mes.configure(state='disabled')
-    mes.see('end')
-    btn.configure(state='normal')
+    if checks[0] == 1: Load.create_folder(output_dir + '/' + I18n.type_folder(1))
+    if checks[1] == 1: Load.create_folder(output_dir + '/' + I18n.type_folder(2))
+    if checks[2] == 1: Load.create_folder(output_dir + '/' + I18n.type_folder(0))
+
+    def handle(f):
+        im_type = Image.wh_type(f)
+        Load.copy(f, output_dir, im_type)
+
+    _for_each(files, handle, report)
+    report(I18n.tr('log.done'))
 
 
-def collection_district(self, mes, btn, check):
+def collection_district(left_dir, right_dir, output_dir, checks, report):
     '''
-    图片类型分类
-    :param self: GUI.App类属性
-    :param mes: GUI.fourth_tab.scrolledtext 程序运行的提示信息
-    :param btn: GUI.fourth_tab.Button 开始按钮
-    :param check: 集合选区类型
-    :return:
+    Set operations: intersection, left difference, right difference, symmetric difference
+    :param left_dir: left set input directory
+    :param right_dir: right set input directory
+    :param output_dir: image output path
+    :param checks: set operation types
+    :param report: log callback
     '''
-    left_files = Load.read(self.inputname.get())
-    right_files = Load.read(self._inputname.get())
-    left_files = [f for f in left_files if MyImg.is_img(f)]
-    right_files = [f for f in right_files if MyImg.is_img(f)]
-    mes.configure(state='normal')
-    mes.delete('1.0', 'end')
-    mes.insert('end', I18n.tr('log.processing'))
-
     left_hist_dict = {}
     right_hist_dict = {}
+    right_files = []
+    report(I18n.tr('log.processing'))
 
-    for lf in left_files:
-        hist = str(MyImg.hist(lf))
-        left_hist_dict[hist] = lf
+    def add_left(f):
+        left_hist_dict[str(Image.hist(f))] = f
 
-    for lf in right_files:
-        hist = str(MyImg.hist(lf))
-        right_hist_dict[hist] = lf
-    # 交集(字典)
+    def add_right(f):
+        right_hist_dict[str(Image.hist(f))] = f
+        right_files.append(f)
+
+    _for_each(_image_files(left_dir), add_left, report)
+    _for_each(_image_files(right_dir), add_right, report)
+
+    # intersection (dict)
     inter_dict = get_intersection(right_files, left_hist_dict)
-    # 左差集(列表)
+    # left difference (list)
     left_list = get_difference(left_hist_dict, inter_dict)
-    # 右差集(列表)
+    # right difference (list)
     right_list = get_difference(right_hist_dict, inter_dict)
 
-    if check[0].get() == 1:
-        for f in inter_dict:
-            Load._copy(inter_dict[f], self.outputname.get() + '/' + I18n.tr('folder.intersection') + '/')
+    if checks[0] == 1:
+        _for_each(
+            inter_dict.values(),
+            lambda f: Load._copy(f, output_dir + '/' + I18n.tr('folder.intersection') + '/'),
+            report,
+        )
 
-    if check[1].get() == 1:
-        for f in left_list:
-            Load._copy(f, self.outputname.get() + '/' + I18n.tr('folder.left_diff') + '/')
+    if checks[1] == 1:
+        _for_each(
+            left_list,
+            lambda f: Load._copy(f, output_dir + '/' + I18n.tr('folder.left_diff') + '/'),
+            report,
+        )
 
-    if check[2].get() == 1:
-        for f in right_list:
-            Load._copy(f, self.outputname.get() + '/' + I18n.tr('folder.right_diff') + '/')
+    if checks[2] == 1:
+        _for_each(
+            right_list,
+            lambda f: Load._copy(f, output_dir + '/' + I18n.tr('folder.right_diff') + '/'),
+            report,
+        )
 
-    if check[3].get() == 1:
-        double_list = left_list + right_list
-        for f in double_list:
-            Load._copy(f, self.outputname.get() + '/' + I18n.tr('folder.symmetric_diff') + '/')
+    if checks[3] == 1:
+        _for_each(
+            left_list + right_list,
+            lambda f: Load._copy(f, output_dir + '/' + I18n.tr('folder.symmetric_diff') + '/'),
+            report,
+        )
 
-    mes.insert('end', I18n.tr('log.done'))
-    mes.configure(state='disabled')
-    mes.see('end')
-    btn.configure(state='normal')
+    report(I18n.tr('log.done'))

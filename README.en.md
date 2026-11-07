@@ -35,7 +35,7 @@ PicFilter/
 ├─ filter/
 │  ├─ Filter.py            # Deduplication, filtering, classification, set operations
 │  ├─ Load.py              # File traversal, copying, and directory creation
-│  └─ MyImg.py             # Image detection, size classification, histograms
+│  └─ Image.py             # Image detection, size classification, histograms
 ├─ utils/
 │  ├─ I18n.py              # Translation loading and system language detection
 │  ├─ Icon.py              # Embedded application icon

@@ -35,7 +35,7 @@ PicFilter/
 ├─ filter/
 │  ├─ Filter.py            # 去重、筛选、分类与集合运算
 │  ├─ Load.py              # 文件遍历、复制与目录创建
-│  └─ MyImg.py             # 图片识别、尺寸判断与直方图
+│  └─ Image.py             # 图片识别、尺寸判断与直方图
 ├─ utils/
 │  ├─ I18n.py              # 多语言加载与系统语言检测
 │  ├─ Icon.py              # 内嵌应用图标

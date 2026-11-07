@@ -73,6 +73,8 @@
   "log.not_matched": "不符合，下一张\n\n",
   "log.processing": "处理中...\n\n",
   "log.done": "处理完成！",
+  "log.file_failed": "[ {name} ] - 处理失败：{error}\n\n",
+  "log.job_failed": "处理失败：{error}\n\n",
   "folder.matched": "符合的图片",
   "folder.horizontal": "横图",
   "folder.vertical": "竖图",

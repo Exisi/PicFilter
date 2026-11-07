@@ -5,29 +5,29 @@ from utils import I18n
 
 
 def create_folder(output_path: str):
-    # 创建输出目录
+    # Create the output directory
     if not exists(output_path): os.makedirs(output_path)
 
 
 def read(file_dir):
     '''
-    获取图片路径
-    :param file_list: 图片路径列表
+    Get all file paths under the directory
+    :param file_list: list of file paths
     :return List
     '''
     file_list = []
-    for root, dirs, files in os.walk(file_dir):  # 取出目录和文件
-        for f in files:  # 迭代获取文件
+    for root, dirs, files in os.walk(file_dir):  # separate directories and files
+        for f in files:  # collect each file
             file_list.append(os.path.join(root, f))
     return file_list
 
 
 def full_copy(file_path, file_output: str):
     '''
-    复制图片到对应文件下的符合的图片目录
-    :param file_path: 图片路径
-    :param file_output: 图片输出路径
-    :param file_name: 图片名称
+    Copy the image into the matched-image folder under the output directory
+    :param file_path: image path
+    :param file_output: image output path
+    :param file_name: image name
     '''
     file_name = name(file_path)
     if not exists(file_output + '/' + I18n.tr('folder.matched')):
@@ -37,10 +37,10 @@ def full_copy(file_path, file_output: str):
 
 def _copy(file_path, file_output: str):
     '''
-    复制图片到对应文件
-    :param file_path: 图片路径
-    :param file_output: 图片输出路径
-    :param file_name: 图片名称
+    Copy the image into the output directory
+    :param file_path: image path
+    :param file_output: image output path
+    :param file_name: image name
     '''
     file_name = name(file_path)
     if not exists(file_output): os.makedirs(file_output)
@@ -49,10 +49,10 @@ def _copy(file_path, file_output: str):
 
 def copy(file_path, file_output: str, im_type: int):
     '''
-    复制图片分类到对应文件
-    :param file_path: 图片路径
-    :param file_output: 图片输出路径
-    :param file_name: 图片名称
+    Copy the image into its type folder
+    :param file_path: image path
+    :param file_output: image output path
+    :param file_name: image name
     '''
     file_name = name(file_path)
     folder = I18n.type_folder(im_type)
@@ -61,21 +61,21 @@ def copy(file_path, file_output: str, im_type: int):
 
 
 def name(file_path: str):
-    # 获取图片文件名
+    # Get the image file name
     return os.path.basename(file_path)
 
 
 def suffix(file_path: str):
-    # 获取图片文件后缀
+    # Get the image file extension
     suffix = os.path.splitext(file_path);
     return suffix[1]
 
 
 def exists(file_dir: str):
-    # 路径是否存在
+    # Check whether the path exists
     return os.path.exists(file_dir)
 
 
 def delete(f):
-    # 图片删除
+    # Delete the image file
     os.remove(f)
