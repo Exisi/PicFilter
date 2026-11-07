@@ -9,7 +9,9 @@
   <strong>简体中文</strong> | <a href="README.en.md">English</a>
 </p>
 
-<img src="/doc/images/cover.png" width=500>
+<p align="center">
+  <img src="/doc/images/cover.png" width="500">
+</p>
 
 # 功能
 * 图片去重

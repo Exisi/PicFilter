@@ -10,7 +10,9 @@
 </p>
 
 
-<img src="/doc/images/cover.png" width=500>
+<p align="center">
+  <img src="/doc/images/cover.png" width="500">
+</p>
 
 
 # Features
