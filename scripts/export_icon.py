@@ -1,6 +1,6 @@
 """Export a PNG icon from the ICO file used by the desktop builds.
 
-Usage: python scripts/export_icon.py doc/img/favicon.ico build/picfilter.png
+Usage: python scripts/export_icon.py doc/images/favicon.ico build/picfilter.png
 """
 
 import sys

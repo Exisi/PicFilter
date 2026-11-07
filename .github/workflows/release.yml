@@ -20,7 +20,7 @@ jobs:
             platform: windows-x64
             python: python
             data_sep: ';'
-            icon_args: '--icon doc/img/favicon.ico'
+            icon_args: '--icon doc/images/favicon.ico'
           - os: ubuntu-latest
             platform: linux-x64
             python: .venv/bin/python
@@ -30,12 +30,12 @@ jobs:
             platform: macos-arm64
             python: python
             data_sep: ':'
-            icon_args: '--icon doc/img/favicon.ico'
+            icon_args: '--icon doc/images/favicon.ico'
           - os: macos-15-intel
             platform: macos-x64
             python: python
             data_sep: ':'
-            icon_args: '--icon doc/img/favicon.ico'
+            icon_args: '--icon doc/images/favicon.ico'
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -133,7 +133,7 @@ jobs:
           cp -a dist/PicFilter/. "$package_root/opt/picfilter/"
           ln -s /opt/picfilter/PicFilter "$package_root/usr/bin/picfilter"
           cp installer/picfilter.desktop "$package_root/usr/share/applications/picfilter.desktop"
-          .venv/bin/python scripts/export_icon.py doc/img/favicon.ico \
+          .venv/bin/python scripts/export_icon.py doc/images/favicon.ico \
             "$package_root/usr/share/icons/hicolor/256x256/apps/picfilter.png"
           printf '%s\n' \
             "Package: picfilter" \

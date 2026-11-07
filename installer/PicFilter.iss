@@ -27,7 +27,7 @@ SolidCompression=yes
 WizardStyle=modern
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
-SetupIconFile=..\doc\img\favicon.ico
+SetupIconFile=..\doc\images\favicon.ico
 UninstallDisplayIcon={app}\{#MyAppExeName}
 
 [Languages]
