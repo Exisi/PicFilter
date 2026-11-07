@@ -1,11 +1,14 @@
 """Runtime translation support for the Chinese and English interface."""
 
+import ctypes
 import json
+import locale
 import os
 import sys
-import tempfile
 
-DEFAULT_LANGUAGE = 'zh'
+from . import Settings
+
+DEFAULT_LANGUAGE = 'en'
 LANGUAGE_LABELS = {'zh': '中文', 'en': 'English'}
 LANGUAGE_DIR = 'languages'
 
@@ -35,40 +38,33 @@ def _load_table(language):
 TRANSLATIONS = {language: _load_table(language) for language in LANGUAGE_LABELS}
 
 
-def _settings_path():
-    base = os.environ.get('APPDATA') or tempfile.gettempdir()
-    return os.path.join(base, 'PicFilter', 'settings.json')
+def detect_system_language():
+    if sys.platform == 'win32':
+        try:
+            language_id = ctypes.windll.kernel32.GetUserDefaultUILanguage()
+        except (AttributeError, OSError):
+            pass
+        else:
+            return 'zh' if (language_id & 0x3FF) == 0x04 else DEFAULT_LANGUAGE
+    try:
+        name = locale.getlocale()[0] or ''
+    except ValueError:
+        name = ''
+    return 'zh' if name.lower().startswith('zh') else DEFAULT_LANGUAGE
 
 
 def load_language():
     global _current
-    try:
-        with open(_settings_path(), encoding='utf-8') as settings:
-            language = json.load(settings).get('language')
-    except (OSError, ValueError, AttributeError):
-        language = None
+    language = Settings.load().get('language')
     if language in TRANSLATIONS:
         _current = language
+    else:
+        _current = detect_system_language()
     return _current
 
 
 def save_language(language):
-    path = _settings_path()
-    try:
-        os.makedirs(os.path.dirname(path), exist_ok=True)
-        settings = {}
-        try:
-            with open(path, encoding='utf-8') as current:
-                settings = json.load(current)
-            if not isinstance(settings, dict):
-                settings = {}
-        except (OSError, ValueError):
-            settings = {}
-        settings['language'] = language
-        with open(path, 'w', encoding='utf-8') as target:
-            json.dump(settings, target, ensure_ascii=False, indent=2)
-    except OSError:
-        pass
+    Settings.save('language', language)
 
 
 def set_language(language):
