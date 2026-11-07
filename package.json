@@ -1,6 +1,6 @@
 {
   "name": "picfilter",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Batch image filtering tool built with CustomTkinter and Pillow",
   "private": true,
   "license": "MIT"

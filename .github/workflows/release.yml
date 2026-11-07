@@ -9,9 +9,33 @@ permissions:
   contents: write
 
 jobs:
-  release:
-    name: Windows build
-    runs-on: windows-latest
+  build:
+    name: Build ${{ matrix.platform }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            platform: windows-x64
+            python: python
+            data_sep: ';'
+            icon_args: '--icon doc/img/favicon.ico'
+          - os: ubuntu-latest
+            platform: linux-x64
+            python: .venv/bin/python
+            data_sep: ':'
+            icon_args: ''
+          - os: macos-15
+            platform: macos-arm64
+            python: python
+            data_sep: ':'
+            icon_args: '--icon doc/img/favicon.ico'
+          - os: macos-15-intel
+            platform: macos-x64
+            python: python
+            data_sep: ':'
+            icon_args: '--icon doc/img/favicon.ico'
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -19,72 +43,192 @@ jobs:
           fetch-depth: 0
 
       - name: Set up Python
+        if: runner.os != 'Linux'
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
           cache: 'pip'
 
-      - name: Resolve version from tag
-        id: version
-        shell: pwsh
+      - name: Install Linux build dependencies
+        if: runner.os == 'Linux'
         run: |
-          $tag = "${{ github.ref_name }}"
-          if ($tag -notmatch '^v(\d+\.\d+\.\d+)$') {
-            throw "Release tag must match v<major>.<minor>.<patch>, got '$tag'"
-          }
-          "tag=$tag" >> $env:GITHUB_OUTPUT
-          "value=$($Matches[1])" >> $env:GITHUB_OUTPUT
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends python3-tk python3-venv
 
-      - name: Sync version into package.json
-        run: python scripts/set_version.py "v${{ steps.version.outputs.value }}"
+      - name: Create Linux virtual environment
+        if: runner.os == 'Linux'
+        run: |
+          python3 -m venv .venv
+          .venv/bin/python -m pip install --upgrade pip
+          .venv/bin/python -m pip install -r requirements.txt pyinstaller
 
       - name: Install dependencies
+        if: runner.os != 'Linux'
         run: |
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt pyinstaller
 
+      - name: Resolve version from tag
+        id: version
+        shell: bash
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          if [[ ! "$tag" =~ ^v([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+            echo "Release tag must match v<major>.<minor>.<patch>, got '$tag'" >&2
+            exit 1
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "value=${BASH_REMATCH[1]}" >> "$GITHUB_OUTPUT"
+
+      - name: Sync version into package.json
+        shell: bash
+        run: ${{ matrix.python }} scripts/set_version.py "${{ steps.version.outputs.tag }}"
+
       - name: Build application
+        shell: bash
         run: >
-          pyinstaller --noconfirm --clean --windowed --name PicFilter
-          --icon "doc/img/favicon.ico"
-          --add-data "assets;assets"
-          --add-data "package.json;."
+          ${{ matrix.python }} -m PyInstaller --noconfirm --clean --windowed --name PicFilter
+          ${{ matrix.icon_args }}
+          --add-data "assets${{ matrix.data_sep }}assets"
+          --add-data "languages${{ matrix.data_sep }}languages"
+          --add-data "package.json${{ matrix.data_sep }}."
           --collect-all customtkinter
           App.py
 
-      - name: Create release archive
-        id: package
+      - name: Package Windows release
+        if: runner.os == 'Windows'
         shell: pwsh
         run: |
           $version = "${{ steps.version.outputs.value }}"
-          $archive = "PicFilter-v$version-windows-x64.zip"
-          Compress-Archive -Path "dist/PicFilter/*" -DestinationPath $archive
-          "archive=$archive" >> $env:GITHUB_OUTPUT
+          New-Item -ItemType Directory -Force -Path release | Out-Null
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path -LiteralPath $iscc)) {
+            choco install innosetup -y --no-progress
+            $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          }
+          if (-not (Test-Path -LiteralPath $iscc)) {
+            throw "Inno Setup compiler not found at $iscc"
+          }
+          & $iscc "installer\PicFilter.iss" "/DMyAppVersion=$version"
+          if ($LASTEXITCODE -ne 0) {
+            throw "Inno Setup exited with code $LASTEXITCODE"
+          }
+          Compress-Archive -Path "dist/PicFilter" -DestinationPath "release/PicFilter-v$version-windows-x64-portable.zip"
+
+      - name: Package Linux release
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          version="${{ steps.version.outputs.value }}"
+          mkdir -p release
+          tar -czf "release/PicFilter-v${version}-linux-x64-portable.tar.gz" -C dist PicFilter
+
+          package_root="build/deb"
+          rm -rf "$package_root"
+          mkdir -p "$package_root/DEBIAN" \
+                   "$package_root/opt/picfilter" \
+                   "$package_root/usr/bin" \
+                   "$package_root/usr/share/applications" \
+                   "$package_root/usr/share/icons/hicolor/256x256/apps"
+          cp -a dist/PicFilter/. "$package_root/opt/picfilter/"
+          ln -s /opt/picfilter/PicFilter "$package_root/usr/bin/picfilter"
+          cp installer/picfilter.desktop "$package_root/usr/share/applications/picfilter.desktop"
+          .venv/bin/python scripts/export_icon.py doc/img/favicon.ico \
+            "$package_root/usr/share/icons/hicolor/256x256/apps/picfilter.png"
+          printf '%s\n' \
+            "Package: picfilter" \
+            "Version: ${version}" \
+            "Section: graphics" \
+            "Priority: optional" \
+            "Architecture: amd64" \
+            "Depends: libc6, libx11-6, libxft2, libfontconfig1" \
+            "Maintainer: Exisi <exi.simat@gmail.com>" \
+            "Description: Batch image filtering tool built with CustomTkinter and Pillow" \
+            > "$package_root/DEBIAN/control"
+          dpkg-deb --build --root-owner-group "$package_root" \
+            "release/PicFilter-v${version}-linux-x64.deb"
+
+      - name: Package macOS release
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          version="${{ steps.version.outputs.value }}"
+          platform="${{ matrix.platform }}"
+          mkdir -p release
+          ditto -c -k --sequesterRsrc --keepParent "dist/PicFilter.app" \
+            "release/PicFilter-v${version}-${platform}-portable.zip"
+
+          staging="build/dmg"
+          rm -rf "$staging"
+          mkdir -p "$staging"
+          cp -R "dist/PicFilter.app" "$staging/"
+          ln -s /Applications "$staging/Applications"
+          hdiutil create -volname "PicFilter" -srcfolder "$staging" -ov -format UDZO \
+            "release/PicFilter-v${version}-${platform}.dmg"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.platform }}
+          path: release/*
+          if-no-files-found: error
+
+  release:
+    name: Publish GitHub release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release
+          merge-multiple: true
+
+      - name: Resolve version from tag
+        id: version
+        shell: bash
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          if [[ ! "$tag" =~ ^v([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+            echo "Release tag must match v<major>.<minor>.<patch>, got '$tag'" >&2
+            exit 1
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "value=${BASH_REMATCH[1]}" >> "$GITHUB_OUTPUT"
 
       - name: Generate release notes
-        shell: pwsh
+        shell: bash
         run: |
-          $tag = "${{ steps.version.outputs.tag }}"
-          $version = "${{ steps.version.outputs.value }}"
-          $previous = git tag --sort=-creatordate | Where-Object { $_ -ne $tag } | Select-Object -First 1
-          $notes = @("# PicFilter v$version", "")
-          if ($previous) {
-            $notes += "## Changes since $previous"
-            $notes += ""
-            $notes += @(git log "$previous..$tag" --no-merges --pretty=format:"- %s")
-            $notes += ""
-            $notes += "Full changelog: https://github.com/${{ github.repository }}/compare/$previous...$tag"
-          } else {
-            $notes += "## Changes"
-            $notes += ""
-            $notes += @(git log $tag --no-merges --pretty=format:"- %s")
-          }
-          $notes | Set-Content -Path release_notes.md -Encoding utf8
+          tag="${{ steps.version.outputs.tag }}"
+          version="${{ steps.version.outputs.value }}"
+          previous=$(git describe --tags --abbrev=0 "${tag}^" 2>/dev/null || true)
+          {
+            echo "# PicFilter v${version}"
+            echo
+            if [ -n "$previous" ]; then
+              echo "## Changes since ${previous}"
+              echo
+              git log "${previous}..${tag}" --no-merges --pretty=format:"- %s"
+              echo
+              echo
+              echo "Full changelog: https://github.com/${{ github.repository }}/compare/${previous}...${tag}"
+            else
+              echo "## Changes"
+              echo
+              git log "${tag}" --no-merges --pretty=format:"- %s"
+            fi
+            echo
+          } > release_notes.md
 
       - name: Publish GitHub release
         uses: softprops/action-gh-release@v2
         with:
           name: PicFilter v${{ steps.version.outputs.value }}
           body_path: release_notes.md
-          files: ${{ steps.package.outputs.archive }}
+          files: release/*
           fail_on_unmatched_files: true

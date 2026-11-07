@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=PicFilter
+GenericName=Image Filter
+Comment=Batch image filtering tool built with CustomTkinter and Pillow
+Exec=/opt/picfilter/PicFilter
+Icon=picfilter
+Terminal=false
+Categories=Graphics;Utility;
+Keywords=image;filter;batch;
