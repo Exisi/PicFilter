@@ -9,45 +9,68 @@
   <a href="README.md">简体中文</a> | <strong>English</strong>
 </p>
 
-
 <p align="center">
-  <img src="/doc/images/cover.png" width="500">
+  <img src="/doc/images/cover.png">
 </p>
 
-
 # Features
-* Image deduplication
-* Aspect ratio filtering
-* Width/height filtering
-* Classify images as landscape, portrait, or square
-* Set selection and comparison between two image groups
 
-# Notes
-* Deduplication does not yet detect identical images with different dimensions.
-* Images that pass filtering are copied to the matching output directory.
-* Source files are not deleted after filtering (except during deduplication).
+- Image deduplication based on pixel histograms
+- Aspect ratio filtering by minimum/maximum ratio
+- Dimension filtering by minimum/maximum width and height
+- Image classification into landscape, portrait, and square
+- Set operations: intersection, left/right difference, and symmetric difference between two image groups
 
-# Build and Release
+# Tech Stack
+
+- CustomTkinter
+- Pillow
+- Tkinter
+
+# Project Structure
+
+```text
+PicFilter/
+├─ App.py                  # Application entry point and main UI
+├─ filter/
+│  ├─ Filter.py            # Deduplication, filtering, classification, set operations
+│  ├─ Load.py              # File traversal, copying, and directory creation
+│  └─ MyImg.py             # Image detection, size classification, histograms
+├─ utils/
+│  ├─ I18n.py              # Translation loading and system language detection
+│  ├─ Icon.py              # Embedded application icon
+│  └─ Settings.py          # User preference persistence
+├─ languages/
+│  ├─ zh.json              # Chinese translations
+│  └─ en.json              # English translations
+├─ assets/
+│  └─ icons/               # UI icons (light/dark variants)
+├─ doc/
+│  └─ images/              # README screenshots and application icon
+├─ installer/              # Installer-related files
+├─ scripts/                # Helper scripts
+├─ .github/workflows/      # CI configuration
+├─ package.json            # Version and project metadata
+├─ requirements.txt        # Python dependencies
+├─ README.md               # Chinese documentation
+├─ README.en.md            # English documentation
+└─ LICENSE                 # MIT License
+```
+
+# Getting Started
 
 ```bash
 pip install -r requirements.txt
 python App.py
 ```
 
-The version number is stored in `package.json` and read at startup.
+# Notes
 
-Pushing a tag in the `v<major>.<minor>.<patch>` format triggers GitHub Actions: it synchronizes the version, builds installers and portable packages for Windows, Linux, and macOS, generates release notes from the commits between the previous and current tags, and publishes them to GitHub Releases automatically.
+- Deduplication does not yet detect identical images with different dimensions.
+- Deduplication deletes duplicate images directly; back up important files before running it.
+- Ratio/dimension filtering and classification copy matching images to the output directory; source files are not deleted.
+- The input and output directories must be different.
 
-| Platform            | Installer                            | Portable                                 |
-| ------------------- | ------------------------------------ | ---------------------------------------- |
-| Windows x64         | `PicFilter-v*-windows-x64-setup.exe` | `PicFilter-v*-windows-x64-portable.zip`  |
-| Linux x64           | `PicFilter-v*-linux-x64.deb`         | `PicFilter-v*-linux-x64-portable.tar.gz` |
-| macOS Apple Silicon | `PicFilter-v*-macos-arm64.dmg`       | `PicFilter-v*-macos-arm64-portable.zip`  |
-| macOS Intel         | `PicFilter-v*-macos-x64.dmg`         | `PicFilter-v*-macos-x64-portable.zip`    |
+# License
 
-The macOS installers are unsigned. On first launch, right-click and choose "Open", or run `xattr -dr com.apple.quarantine /Applications/PicFilter.app` before launching.
-
-```bash
-git tag v0.3.2
-git push origin v0.3.2
-```
+This project is licensed under the [MIT License](LICENSE).
