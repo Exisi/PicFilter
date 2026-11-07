@@ -41,7 +41,7 @@ python App.py
 macOS 安装包未签名，首次打开需右键选择「打开」，或执行 `xattr -dr com.apple.quarantine /Applications/PicFilter.app` 后再启动。
 
 ```bash
-git tag v0.3.1
-git push origin v0.3.1
+git tag v0.3.2
+git push origin v0.3.2
 ```
 
