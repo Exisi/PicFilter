@@ -1,9 +1,13 @@
 import base64
 import json
 import os
+import queue
+import re
 import sys
 import tempfile
+import threading
 import tkinter as tk
+import urllib.request
 import webbrowser
 from tkinter import filedialog, messagebox
 
@@ -11,25 +15,26 @@ import customtkinter as ctk
 from PIL import Image
 
 from filter import Filter
+from utils import I18n
 from utils.Icon import Icon
 
 FONT_FAMILY = 'Microsoft YaHei UI'
 PROJECT_URL = 'https://github.com/Exisi/PicFilter'
+UPDATE_API_URL = 'https://api.github.com/repos/Exisi/PicFilter/releases/latest'
 
-IMAGE_TYPES = ('全部', '横图', '竖图')
-IMAGE_TYPE_INDEX = {'全部': 0, '横图': 1, '竖图': 2}
+IMAGE_TYPE_KEYS = ('all', 'horizontal', 'vertical')
 
-THEME_MODES = {'跟随系统': 'system', '浅色': 'light', '深色': 'dark'}
+THEME_KEYS = ('system', 'light', 'dark')
 
-NAV_ITEMS = ('图片去重', '比例限制', '宽高限制', '图片分类', '集合选区', '关于')
+NAV_PAGES = ('duplicate', 'ratio', 'size', 'classify', 'collection', 'about')
 
 NAV_ICON_FILES = {
-    '图片去重': 'clone',
-    '比例限制': 'crop-simple',
-    '宽高限制': 'maximize',
-    '图片分类': 'table-cells-large',
-    '集合选区': 'object-group',
-    '关于': 'circle-info',
+    'duplicate': 'clone',
+    'ratio': 'crop-simple',
+    'size': 'maximize',
+    'classify': 'table-cells-large',
+    'collection': 'object-group',
+    'about': 'circle-info',
 }
 
 def _resource_dir():
@@ -51,14 +56,30 @@ ICON_SIZE = (18, 18)
 SIDEBAR_WIDTH = 216
 
 
+def _image_type_labels():
+    return [I18n.tr('image_type.' + key) for key in IMAGE_TYPE_KEYS]
+
+
+def _parse_version(text):
+    match = re.search(r'\d+(?:\.\d+)*', text or '')
+    if match is None:
+        return ()
+    parts = [int(part) for part in match.group(0).split('.')]
+    while len(parts) < 3:
+        parts.append(0)
+    return tuple(parts)
+
+
 class App(ctk.CTk):
     def __init__(self):
         super().__init__()
 
+        I18n.load_language()
         self.version = _load_version()
+        self.theme_key = 'system'
         self.icon_path = os.path.join(tempfile.gettempdir(), 'picfilter.ico')
 
-        ctk.set_appearance_mode('system')
+        ctk.set_appearance_mode(self.theme_key)
         ctk.set_default_color_theme('blue')
 
         self.title('PicFilter')
@@ -79,9 +100,13 @@ class App(ctk.CTk):
         self.pages = {}
         self.nav_buttons = {}
         self._icon_cache = {}
+        self._ui_generation = 0
+        self._update_url = PROJECT_URL
+        self._update_checking = False
+        self._update_frames = None
         self.current_page = None
         self._build_ui()
-        self.show_page(NAV_ITEMS[0])
+        self.show_page(NAV_PAGES[0])
         self.update_idletasks()
         self.deiconify()
 
@@ -111,7 +136,36 @@ class App(ctk.CTk):
         self.geometry('{}x{}+{}+{}'.format(self.w, self.h, x, y))
 
     def _change_theme(self, value):
-        ctk.set_appearance_mode(THEME_MODES.get(value, 'system'))
+        for key in THEME_KEYS:
+            if I18n.tr('theme.' + key) == value:
+                self.theme_key = key
+                ctk.set_appearance_mode(key)
+                return
+
+    def _change_language(self, value):
+        language = next(
+            (code for code, label in I18n.LANGUAGE_LABELS.items() if label == value),
+            None,
+        )
+        if language is None or language == I18n.get_language():
+            return
+        I18n.set_language(language)
+        I18n.save_language(language)
+        self._rebuild_ui()
+
+    def _rebuild_ui(self):
+        page = self.current_page or NAV_PAGES[0]
+        self._ui_generation += 1
+        self._update_checking = False
+        self.body.destroy()
+        self.pages.clear()
+        self.nav_buttons.clear()
+        self.current_page = None
+        self._build_ui()
+        if not self.sidebar_visible:
+            self.sidebar_slot.configure(width=0)
+            self.menu_button.configure(image=self._create_icon('bars'))
+        self.show_page(page)
 
     def _create_icon(self, name, active=False):
         key = (name, active)
@@ -169,7 +223,7 @@ class App(ctk.CTk):
         ).pack(anchor='w')
         ctk.CTkLabel(
             brand,
-            text='版本 ' + self.version,
+            text=I18n.tr('app.version', version=self.version),
             font=self.font_subtitle,
             text_color=('gray45', 'gray60'),
             anchor='w',
@@ -178,10 +232,10 @@ class App(ctk.CTk):
         nav = ctk.CTkFrame(self.sidebar, fg_color='transparent')
         nav.grid(row=1, column=0, sticky='ew', padx=10)
         nav.grid_columnconfigure(0, weight=1)
-        for index, name in enumerate(NAV_ITEMS):
+        for index, name in enumerate(NAV_PAGES):
             button = ctk.CTkButton(
                 nav,
-                text='   ' + name,
+                text='   ' + I18n.tr('nav.' + name),
                 image=self._create_icon(NAV_ICON_FILES[name]),
                 compound='left',
                 anchor='w',
@@ -200,20 +254,38 @@ class App(ctk.CTk):
         footer.grid(row=3, column=0, sticky='ew', padx=14, pady=(10, 18))
         ctk.CTkLabel(
             footer,
-            text='外观',
+            text=I18n.tr('sidebar.language'),
+            font=self.font_subtitle,
+            text_color=('gray45', 'gray60'),
+            anchor='w',
+        ).pack(anchor='w', pady=(0, 6))
+        language_switch = ctk.CTkSegmentedButton(
+            footer,
+            values=list(I18n.LANGUAGE_LABELS.values()),
+            width=SIDEBAR_WIDTH - 28,
+            height=30,
+            font=self.font_subtitle,
+            command=self._change_language,
+        )
+        language_switch.set(I18n.LANGUAGE_LABELS[I18n.get_language()])
+        language_switch.pack(anchor='w', pady=(0, 14))
+
+        ctk.CTkLabel(
+            footer,
+            text=I18n.tr('sidebar.appearance'),
             font=self.font_subtitle,
             text_color=('gray45', 'gray60'),
             anchor='w',
         ).pack(anchor='w', pady=(0, 6))
         theme_switch = ctk.CTkSegmentedButton(
             footer,
-            values=list(THEME_MODES.keys()),
+            values=[I18n.tr('theme.' + key) for key in THEME_KEYS],
             width=SIDEBAR_WIDTH - 28,
             height=30,
             font=self.font_subtitle,
             command=self._change_theme,
         )
-        theme_switch.set('跟随系统')
+        theme_switch.set(I18n.tr('theme.' + self.theme_key))
         theme_switch.pack(anchor='w')
 
     def toggle_sidebar(self):
@@ -268,14 +340,14 @@ class App(ctk.CTk):
         self.page_area.grid_rowconfigure(0, weight=1)
 
         builders = {
-            '图片去重': self.duplicate_tab,
-            '比例限制': self.ratio_tab,
-            '宽高限制': self.size_tab,
-            '图片分类': self.classify_tab,
-            '集合选区': self.collection_tab,
-            '关于': self.about_tab,
+            'duplicate': self.duplicate_tab,
+            'ratio': self.ratio_tab,
+            'size': self.size_tab,
+            'classify': self.classify_tab,
+            'collection': self.collection_tab,
+            'about': self.about_tab,
         }
-        for name in NAV_ITEMS:
+        for name in NAV_PAGES:
             page = ctk.CTkFrame(
                 self.page_area,
                 corner_radius=14,
@@ -285,10 +357,10 @@ class App(ctk.CTk):
             builders[name](page)
             self.pages[name] = page
 
-        for name in NAV_ITEMS:
+        for name in NAV_PAGES:
             self.pages[name].grid(row=0, column=0, sticky='nsew')
         self.update_idletasks()
-        for name in NAV_ITEMS:
+        for name in NAV_PAGES:
             self.pages[name].grid_remove()
 
     def show_page(self, name):
@@ -301,7 +373,7 @@ class App(ctk.CTk):
             self.pages[previous].grid_remove()
 
         self.current_page = name
-        self.page_title.configure(text=name)
+        self.page_title.configure(text=I18n.tr('nav.' + name))
 
         for page_name in (previous, name):
             if page_name is None:
@@ -319,7 +391,7 @@ class App(ctk.CTk):
     def _add_tip(self, card, text):
         ctk.CTkLabel(
             card,
-            text='提示  ' + text,
+            text=I18n.tr('tip.prefix') + '  ' + text,
             font=self.font_body,
             text_color=('gray35', 'gray72'),
             anchor='w',
@@ -341,7 +413,7 @@ class App(ctk.CTk):
         entry.grid(row=0, column=1, sticky='ew')
         ctk.CTkButton(
             line,
-            text='浏览',
+            text=I18n.tr('button.browse'),
             width=64,
             height=34,
             font=self.font_body,
@@ -396,7 +468,7 @@ class App(ctk.CTk):
 
         ctk.CTkLabel(
             bar,
-            text='就绪',
+            text=I18n.tr('status.ready'),
             font=self.font_subtitle,
             text_color=('gray45', 'gray60'),
             anchor='w',
@@ -404,7 +476,7 @@ class App(ctk.CTk):
 
         button = ctk.CTkButton(
             bar,
-            text='开始处理',
+            text=I18n.tr('button.start'),
             width=136,
             height=38,
             corner_radius=10,
@@ -418,9 +490,9 @@ class App(ctk.CTk):
 
     def duplicate_tab(self, tab):
         card = self._create_card(tab)
-        self._add_tip(card, '图片去重会直接删除重复的图片，操作前请先备份重要文件。')
+        self._add_tip(card, I18n.tr('tip.duplicate'))
         self._add_path_row(
-            card, 1, '输入目录', self.inputname, self.get_input_dir
+            card, 1, I18n.tr('label.input_dir'), self.inputname, self.get_input_dir
         ).focus()
         mes = self._add_log(card, 2)
         start_btn = self._add_action_bar(
@@ -429,27 +501,32 @@ class App(ctk.CTk):
 
     def ratio_tab(self, tab):
         card = self._create_card(tab)
-        self._add_tip(card, '按图片长宽比例筛选，符合的图片会复制到输出目录。')
-        self._add_path_row(card, 1, '输入目录', self.inputname, self.get_input_dir)
-        self._add_path_row(card, 2, '输出目录', self.outputname, self.get_output_dir)
+        self._add_tip(card, I18n.tr('tip.ratio'))
+        self._add_path_row(
+            card, 1, I18n.tr('label.input_dir'), self.inputname, self.get_input_dir
+        )
+        self._add_path_row(
+            card, 2, I18n.tr('label.output_dir'), self.outputname, self.get_output_dir
+        )
 
         group = self._add_option_group(card, 3)
-        self._add_option_label(group, '图片类型')
+        self._add_option_label(group, I18n.tr('label.image_type'))
+        labels = _image_type_labels()
         image_type = ctk.CTkOptionMenu(
             group,
-            values=list(IMAGE_TYPES),
+            values=labels,
             width=110,
             height=34,
             font=self.font_body,
         )
-        image_type.set(IMAGE_TYPES[0])
+        image_type.set(labels[0])
         image_type.grid(row=0, column=1, padx=(0, 24), pady=10)
 
-        self._add_option_label(group, '最小比例', column=2)
+        self._add_option_label(group, I18n.tr('label.min_ratio'), column=2)
         min_scale = self._create_number_entry(group, default='1.0', is_float=True)
         min_scale.grid(row=0, column=3, padx=(0, 24), pady=10)
 
-        self._add_option_label(group, '最大比例', column=4)
+        self._add_option_label(group, I18n.tr('label.max_ratio'), column=4)
         max_scale = self._create_number_entry(group, default='1.0', is_float=True)
         max_scale.grid(row=0, column=5, padx=(0, 12), pady=10)
 
@@ -461,7 +538,7 @@ class App(ctk.CTk):
                 self,
                 mes,
                 start_btn,
-                IMAGE_TYPE_INDEX[image_type.get()],
+                labels.index(image_type.get()),
                 max_scale,
                 min_scale,
             ),
@@ -469,22 +546,26 @@ class App(ctk.CTk):
 
     def size_tab(self, tab):
         card = self._create_card(tab)
-        self._add_tip(card, '按图片宽高像素范围筛选，符合的图片会复制到输出目录。')
-        self._add_path_row(card, 1, '输入目录', self.inputname, self.get_input_dir)
-        self._add_path_row(card, 2, '输出目录', self.outputname, self.get_output_dir)
+        self._add_tip(card, I18n.tr('tip.size'))
+        self._add_path_row(
+            card, 1, I18n.tr('label.input_dir'), self.inputname, self.get_input_dir
+        )
+        self._add_path_row(
+            card, 2, I18n.tr('label.output_dir'), self.outputname, self.get_output_dir
+        )
 
         group = self._add_option_group(card, 3)
-        self._add_option_label(group, '最小宽度')
+        self._add_option_label(group, I18n.tr('label.min_width'))
         min_width = self._create_number_entry(group)
         min_width.grid(row=0, column=1, padx=(0, 24), pady=10)
-        self._add_option_label(group, '最大宽度', column=2)
+        self._add_option_label(group, I18n.tr('label.max_width'), column=2)
         max_width = self._create_number_entry(group)
         max_width.grid(row=0, column=3, padx=(0, 12), pady=10)
 
-        self._add_option_label(group, '最小高度', row=1)
+        self._add_option_label(group, I18n.tr('label.min_height'), row=1)
         min_height = self._create_number_entry(group)
         min_height.grid(row=1, column=1, padx=(0, 24), pady=(0, 10))
-        self._add_option_label(group, '最大高度', row=1, column=2)
+        self._add_option_label(group, I18n.tr('label.max_height'), row=1, column=2)
         max_height = self._create_number_entry(group)
         max_height.grid(row=1, column=3, padx=(0, 12), pady=(0, 10))
 
@@ -501,18 +582,22 @@ class App(ctk.CTk):
 
     def classify_tab(self, tab):
         card = self._create_card(tab)
-        self._add_tip(card, '按横图 / 竖图 / 方图对图片进行分类。')
-        self._add_path_row(card, 1, '输入目录', self.inputname, self.get_input_dir)
-        self._add_path_row(card, 2, '输出目录', self.outputname, self.get_output_dir)
+        self._add_tip(card, I18n.tr('tip.classify'))
+        self._add_path_row(
+            card, 1, I18n.tr('label.input_dir'), self.inputname, self.get_input_dir
+        )
+        self._add_path_row(
+            card, 2, I18n.tr('label.output_dir'), self.outputname, self.get_output_dir
+        )
 
         group = self._add_option_group(card, 3)
         horizontal = tk.IntVar(value=1)
         vertical = tk.IntVar(value=1)
         square = tk.IntVar(value=1)
         checkboxes = (
-            ('横图', horizontal),
-            ('竖图', vertical),
-            ('方图', square),
+            (I18n.tr('image_type.horizontal'), horizontal),
+            (I18n.tr('image_type.vertical'), vertical),
+            (I18n.tr('image_type.square'), square),
         )
         for index, (text, variable) in enumerate(checkboxes):
             ctk.CTkCheckBox(
@@ -532,10 +617,16 @@ class App(ctk.CTk):
 
     def collection_tab(self, tab):
         card = self._create_card(tab)
-        self._add_tip(card, '对两组图片做交集 / 差集，结果会复制到输出目录。')
-        self._add_path_row(card, 1, '左输入目录', self.inputname, self.get_input_dir)
-        self._add_path_row(card, 2, '右输入目录', self._inputname, self.get__input_dir)
-        self._add_path_row(card, 3, '输出目录', self.outputname, self.get_output_dir)
+        self._add_tip(card, I18n.tr('tip.collection'))
+        self._add_path_row(
+            card, 1, I18n.tr('label.left_input_dir'), self.inputname, self.get_input_dir
+        )
+        self._add_path_row(
+            card, 2, I18n.tr('label.right_input_dir'), self._inputname, self.get__input_dir
+        )
+        self._add_path_row(
+            card, 3, I18n.tr('label.output_dir'), self.outputname, self.get_output_dir
+        )
 
         group = self._add_option_group(card, 4)
         intersection = tk.IntVar()
@@ -543,10 +634,10 @@ class App(ctk.CTk):
         right_diff = tk.IntVar()
         symmetry_diff = tk.IntVar()
         checkboxes = (
-            ('交集', intersection),
-            ('左差集', left_diff),
-            ('右差集', right_diff),
-            ('对称差集', symmetry_diff),
+            (I18n.tr('collection.intersection'), intersection),
+            (I18n.tr('collection.left_diff'), left_diff),
+            (I18n.tr('collection.right_diff'), right_diff),
+            (I18n.tr('collection.symmetric_diff'), symmetry_diff),
         )
         for index, (text, variable) in enumerate(checkboxes):
             ctk.CTkCheckBox(
@@ -575,16 +666,40 @@ class App(ctk.CTk):
             font=ctk.CTkFont(family=FONT_FAMILY, size=30, weight='bold'),
             anchor='w',
         ).pack(fill='x')
+
+        version_line = ctk.CTkFrame(content, fg_color='transparent')
+        version_line.pack(fill='x', pady=(2, 18))
         ctk.CTkLabel(
-            content,
-            text='版本 ' + self.version,
+            version_line,
+            text=I18n.tr('app.version', version=self.version),
             font=self.font_subtitle,
             text_color=('gray40', 'gray65'),
             anchor='w',
-        ).pack(fill='x', pady=(2, 18))
+        ).pack(side='left')
+        self.update_action = ctk.CTkButton(
+            version_line,
+            text='',
+            image=self._create_icon('arrows-rotate'),
+            width=26,
+            height=26,
+            corner_radius=6,
+            fg_color='transparent',
+            hover_color=('gray85', 'gray28'),
+            command=self._check_update,
+        )
+        self.update_action.pack(side='left', padx=(10, 0))
+        self.update_status = ctk.CTkLabel(
+            version_line,
+            text='',
+            font=self.font_subtitle,
+            text_color=('gray45', 'gray60'),
+            anchor='w',
+        )
+        self.update_status.pack(side='left', padx=(8, 0))
+
         ctk.CTkLabel(
             content,
-            text='一个基于 Pillow 的批量图片筛选工具，适用于整理大量图片。',
+            text=I18n.tr('about.description'),
             font=self.font_body,
             anchor='w',
             justify='left',
@@ -592,11 +707,11 @@ class App(ctk.CTk):
         ).pack(fill='x')
 
         features = (
-            '图片去重',
-            '长宽比例筛选',
-            '宽高像素筛选',
-            '横 / 竖 / 方图分类',
-            '两组图片的集合对比',
+            I18n.tr('about.feature.duplicate'),
+            I18n.tr('about.feature.ratio'),
+            I18n.tr('about.feature.size'),
+            I18n.tr('about.feature.classify'),
+            I18n.tr('about.feature.collection'),
         )
         for feature in features:
             ctk.CTkLabel(
@@ -609,7 +724,7 @@ class App(ctk.CTk):
 
         ctk.CTkLabel(
             content,
-            text='项目地址',
+            text=I18n.tr('about.project'),
             font=ctk.CTkFont(family=FONT_FAMILY, size=13, weight='bold'),
             anchor='w',
         ).pack(fill='x', pady=(22, 4))
@@ -626,12 +741,133 @@ class App(ctk.CTk):
             command=lambda: webbrowser.open(PROJECT_URL),
         ).pack(anchor='w')
 
+    def _check_update(self):
+        if self._update_checking:
+            return
+        generation = self._ui_generation
+        self._update_checking = True
+        self.update_status.configure(text=I18n.tr('about.checking'))
+        self._animate_update_icon(generation)
+        results = queue.Queue()
+        threading.Thread(
+            target=self._check_update_worker,
+            args=(results,),
+            daemon=True,
+        ).start()
+        self.after(100, self._poll_update_result, generation, results)
+
+    def _animate_update_icon(self, generation, index=0):
+        if generation != self._ui_generation or not self._update_checking:
+            return
+        frames = self._spinner_frames()
+        self.update_action.configure(image=frames[index % len(frames)])
+        self.after(60, self._animate_update_icon, generation, index + 1)
+
+    def _spinner_frames(self):
+        if self._update_frames is None:
+            light = Image.open(os.path.join(ICON_DIR, 'spinner-light.png'))
+            dark = Image.open(os.path.join(ICON_DIR, 'spinner-dark.png'))
+            self._update_frames = [
+                ctk.CTkImage(
+                    light_image=light.rotate(angle, resample=Image.BICUBIC),
+                    dark_image=dark.rotate(angle, resample=Image.BICUBIC),
+                    size=ICON_SIZE,
+                )
+                for angle in range(0, 360, 30)
+            ]
+        return self._update_frames
+
+    def _check_update_worker(self, results):
+        try:
+            release = self._fetch_latest_release()
+            tag = str(release.get('tag_name') or '')
+            url = release.get('html_url') or PROJECT_URL
+        except (OSError, ValueError, AttributeError):
+            results.put((False, '', ''))
+            return
+        results.put((True, tag, url))
+
+    def _poll_update_result(self, generation, results):
+        if generation != self._ui_generation:
+            return
+        try:
+            success, tag, url = results.get_nowait()
+        except queue.Empty:
+            self.after(100, self._poll_update_result, generation, results)
+            return
+        if success:
+            self._handle_update_result(generation, tag, url)
+        else:
+            self._handle_update_error(generation)
+
+    def _fetch_latest_release(self):
+        request = urllib.request.Request(
+            UPDATE_API_URL,
+            headers={
+                'Accept': 'application/vnd.github+json',
+                'User-Agent': 'PicFilter/' + self.version,
+            },
+        )
+        with urllib.request.urlopen(request, timeout=10) as response:
+            release = json.loads(response.read().decode('utf-8'))
+        if not isinstance(release, dict):
+            raise ValueError('unexpected GitHub response')
+        return release
+
+    def _handle_update_result(self, generation, tag, url):
+        if generation != self._ui_generation:
+            return
+        latest = _parse_version(tag)
+        current = _parse_version(self.version)
+        if not latest or not current:
+            self._handle_update_error(generation)
+            return
+        if latest > current:
+            self._update_url = url
+            self._update_checking = False
+            self.update_action.configure(
+                image=self._create_icon('download'),
+                command=self._open_update_url,
+            )
+            self.update_status.configure(
+                text=I18n.tr('about.update_available', version=tag),
+                text_color=('#1f6feb', '#58a6ff'),
+            )
+            return
+        self.update_status.configure(
+            text=I18n.tr('about.up_to_date'),
+            text_color=('gray45', 'gray60'),
+        )
+        self._reset_update_action()
+
+    def _handle_update_error(self, generation):
+        if generation != self._ui_generation:
+            return
+        self.update_status.configure(
+            text=I18n.tr('about.check_failed'),
+            text_color=('gray45', 'gray60'),
+        )
+        self._reset_update_action()
+
+    def _reset_update_action(self):
+        self._update_checking = False
+        self.update_action.configure(
+            image=self._create_icon('arrows-rotate'),
+            command=self._check_update,
+        )
+
+    def _open_update_url(self):
+        webbrowser.open(self._update_url or PROJECT_URL)
+
     # -------------------------------------------------------------- handlers
 
     def _wh_value_validate(self, value):
         if value == '' or value.isdigit():
             return True
-        messagebox.showinfo(title='输入错误', message='请输入正整数数字！')
+        messagebox.showinfo(
+            title=I18n.tr('error.title.input'),
+            message=I18n.tr('validation.positive_integer'),
+        )
         return False
 
     def _ratio_value_validate(self, value):
@@ -641,7 +877,10 @@ class App(ctk.CTk):
             float(value)
             return True
         except ValueError:
-            messagebox.showinfo(title='输入错误', message='请输入有效数字！')
+            messagebox.showinfo(
+                title=I18n.tr('error.title.input'),
+                message=I18n.tr('validation.number'),
+            )
             return False
 
     def get_input_dir(self):

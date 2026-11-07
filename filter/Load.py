@@ -1,6 +1,8 @@
 import os
 import shutil
 
+from utils import I18n
+
 
 def create_folder(output_path: str):
     # 创建输出目录
@@ -28,8 +30,9 @@ def full_copy(file_path, file_output: str):
     :param file_name: 图片名称
     '''
     file_name = name(file_path)
-    if not exists(file_output + '/符合的图片'): os.makedirs(file_output + '/符合的图片')
-    shutil.copyfile(file_path, file_output + "/符合的图片/" + file_name)
+    if not exists(file_output + '/' + I18n.tr('folder.matched')):
+        os.makedirs(file_output + '/' + I18n.tr('folder.matched'))
+    shutil.copyfile(file_path, file_output + '/' + I18n.tr('folder.matched') + '/' + file_name)
 
 
 def _copy(file_path, file_output: str):
@@ -52,12 +55,9 @@ def copy(file_path, file_output: str, im_type: int):
     :param file_name: 图片名称
     '''
     file_name = name(file_path)
-    if im_type == 0:
-        if exists(file_output + '/方图'): shutil.copyfile(file_path, file_output + '/方图/' + file_name)
-    elif im_type == 1:
-        if exists(file_output + '/横图'): shutil.copyfile(file_path, file_output + '/横图/' + file_name)
-    elif im_type == 2:
-        if exists(file_output + '/竖图'): shutil.copyfile(file_path, file_output + '/竖图/' + file_name)
+    folder = I18n.type_folder(im_type)
+    if exists(file_output + '/' + folder):
+        shutil.copyfile(file_path, file_output + '/' + folder + '/' + file_name)
 
 
 def name(file_path: str):
