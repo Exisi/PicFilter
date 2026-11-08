@@ -68,7 +68,9 @@ def wh_limitByWH(f, limit: dict):
     im = Image.open(f)
     w = float(im.width)
     h = float(im.height)
-    if limit['maxW'] >= w >= limit['minW'] and limit['maxH'] >= h >= limit['minH']:
+    max_w = limit['maxW'] or float('inf')
+    max_h = limit['maxH'] or float('inf')
+    if max_w >= w >= limit['minW'] and max_h >= h >= limit['minH']:
         return True
     else:
         return False

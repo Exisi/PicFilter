@@ -24,6 +24,15 @@ def os_exist(in_dir, out_dir):
         return False
 
 
+def _max_within_min(max_value, min_value):
+    '''
+    A maximum of 0 means no upper limit
+    :param max_value: maximum limit entered by the user
+    :param min_value: minimum limit entered by the user
+    '''
+    return max_value == 0 or max_value >= min_value
+
+
 def is_duplicate_img(f, hist_dict):
     '''
     Detect duplicates using a dictionary keyed by the unique image pixel histogram
@@ -252,7 +261,9 @@ def limit_start(self, mes, btn, limit):
         return
 
     values = {key: int(value) for key, value in raw.items()}
-    if values['maxH'] < values['minH'] or values['maxW'] < values['minW']:
+    if not _max_within_min(values['maxW'], values['minW']) or not _max_within_min(
+        values['maxH'], values['minH']
+    ):
         self.messagebox.showinfo(title=I18n.tr('error.title.input'), message=I18n.tr('error.limit_order'))
         return
     if any(value > 99999 for value in values.values()):

@@ -32,7 +32,7 @@
   "tip.prefix": "Tip",
   "tip.duplicate": "Duplicate detection deletes redundant images immediately. Back up important files before running.",
   "tip.ratio": "Filter images by aspect ratio. Matches are copied to the output folder.",
-  "tip.size": "Filter images by pixel dimensions. Matches are copied to the output folder.",
+  "tip.size": "Filter images by pixel dimensions. Matches are copied to the output folder (0 means no limit).",
   "tip.classify": "Sort images into landscape, portrait, and square folders.",
   "tip.collection": "Compare two image sets with intersection and difference operations. Results are copied to the output folder.",
   "collection.intersection": "Intersection",

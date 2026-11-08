@@ -594,17 +594,17 @@ class App(ctk.CTk):
 
         group = self._add_option_group(card, 3)
         self._add_option_label(group, I18n.tr('label.min_width'))
-        min_width = self._create_number_entry(group)
+        min_width = self._create_number_entry(group, default='0')
         min_width.grid(row=0, column=1, padx=(0, 24), pady=10)
         self._add_option_label(group, I18n.tr('label.max_width'), column=2)
-        max_width = self._create_number_entry(group)
+        max_width = self._create_number_entry(group, default='0')
         max_width.grid(row=0, column=3, padx=(0, 12), pady=10)
 
         self._add_option_label(group, I18n.tr('label.min_height'), row=1)
-        min_height = self._create_number_entry(group)
+        min_height = self._create_number_entry(group, default='0')
         min_height.grid(row=1, column=1, padx=(0, 24), pady=(0, 10))
         self._add_option_label(group, I18n.tr('label.max_height'), row=1, column=2)
-        max_height = self._create_number_entry(group)
+        max_height = self._create_number_entry(group, default='0')
         max_height.grid(row=1, column=3, padx=(0, 12), pady=(0, 10))
 
         limit = {
