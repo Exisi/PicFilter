@@ -61,10 +61,174 @@ NAV_SELECTED_TEXT = ('#1d4ed8', '#93c5fd')
 NAV_HOVER_BG = ('#e9f1fe', '#2d3f58')
 SEGMENTED_UNSELECTED = ('gray90', 'gray22')
 SEGMENTED_UNSELECTED_HOVER = ('gray84', 'gray28')
+MENU_BG = ('#F9F9FA', '#343638')
+MENU_BORDER = ('#979DA2', '#565B5E')
 
 
 def _image_type_labels():
     return [I18n.tr('image_type.' + key) for key in IMAGE_TYPE_KEYS]
+
+
+def _resolve_color(color):
+    if isinstance(color, (tuple, list)):
+        return color[1] if ctk.get_appearance_mode().lower() == 'dark' else color[0]
+    return color
+
+
+class _DropdownPopup(tk.Toplevel):
+    '''Borderless option list styled like the entry fields.'''
+
+    def __init__(
+        self,
+        master,
+        values,
+        command,
+        font,
+        text_color=NAV_TEXT,
+        fg_color=MENU_BG,
+        border_color=MENU_BORDER,
+        hover_color=NAV_HOVER_BG,
+        row_height=34,
+    ):
+        super().__init__(master)
+        self.withdraw()
+        self.overrideredirect(True)
+        self.attributes('-topmost', True)
+        self._command = command
+        self._fg_color = fg_color
+
+        self._frame = ctk.CTkFrame(
+            self,
+            corner_radius=6,
+            fg_color=fg_color,
+            border_width=2,
+            border_color=border_color,
+        )
+        self._frame.pack(fill='both', expand=True)
+
+        for value in values:
+            row = ctk.CTkLabel(
+                self._frame,
+                text=value,
+                font=font,
+                text_color=text_color,
+                anchor='w',
+                height=row_height,
+                fg_color='transparent',
+                padx=6,
+            )
+            row.pack(fill='x', padx=4, pady=1)
+            row.configure(cursor='hand2')
+            row.bind('<Enter>', lambda _e, r=row: r.configure(fg_color=hover_color))
+            row.bind('<Leave>', lambda _e, r=row: r.configure(fg_color='transparent'))
+            row.bind('<Button-1>', lambda _e, v=value: self._choose(v))
+
+        for widget in (self, self._frame):
+            widget.bind('<Button-1>', lambda _e: self.close())
+        self.bind('<Escape>', lambda _e: self.close())
+
+    def is_open(self):
+        return bool(self.winfo_viewable())
+
+    def open(self, x, y, min_width=0):
+        self.configure(bg=_resolve_color(self._fg_color))
+        self.update_idletasks()
+        width = max(min_width, self.winfo_reqwidth())
+        self.geometry(f'{width}x{self.winfo_reqheight()}+{int(x)}+{int(y)}')
+        self.deiconify()
+        self.lift()
+        self.focus_force()
+        try:
+            self.grab_set()
+        except tk.TclError:
+            pass
+
+    def close(self):
+        try:
+            self.grab_release()
+        except tk.TclError:
+            pass
+        self.withdraw()
+
+    def _choose(self, value):
+        self.close()
+        self._command(value)
+
+
+class IconDropdown(ctk.CTkFrame):
+    '''Dropdown control with a chevron-down icon instead of the default arrow.'''
+
+    def __init__(
+        self,
+        master,
+        values,
+        icon,
+        command=None,
+        width=110,
+        height=34,
+        font=None,
+        fg_color=MENU_BG,
+        border_color=MENU_BORDER,
+        border_width=2,
+        text_color=NAV_TEXT,
+        menu_fg_color=MENU_BG,
+    ):
+        super().__init__(
+            master,
+            width=width,
+            height=height,
+            corner_radius=6,
+            fg_color=fg_color,
+            border_width=border_width,
+            border_color=border_color,
+        )
+        self.grid_propagate(False)
+        self.pack_propagate(False)
+
+        self._values = list(values)
+        self._command = command
+
+        self._text = ctk.CTkLabel(
+            self, text=self._values[0], font=font, text_color=text_color, anchor='w'
+        )
+        self._text.place(x=12, rely=0.5, anchor='w')
+
+        self._icon = ctk.CTkLabel(self, text='', image=icon)
+        self._icon.place(relx=1.0, x=-10, rely=0.5, anchor='e')
+
+        self._menu = _DropdownPopup(
+            master=self,
+            values=self._values,
+            command=self._select,
+            font=font,
+            text_color=text_color,
+            fg_color=menu_fg_color,
+        )
+
+        for widget in (self, self._text, self._icon):
+            widget.configure(cursor='hand2')
+            widget.bind('<Button-1>', self._open)
+
+    def _open(self, _event=None):
+        if self._menu.is_open():
+            self._menu.close()
+            return
+        self._menu.open(
+            self.winfo_rootx(),
+            self.winfo_rooty() + self.winfo_height() + 2,
+            min_width=self.winfo_width(),
+        )
+
+    def _select(self, value):
+        self.set(value)
+        if self._command is not None:
+            self._command(value)
+
+    def set(self, value):
+        self._text.configure(text=value)
+
+    def get(self):
+        return self._text.cget('text')
 
 
 def _parse_version(text):
@@ -274,22 +438,14 @@ class App(ctk.CTk):
             text_color=('gray45', 'gray60'),
             anchor='w',
         ).pack(side='left')
-        self.language_menu = ctk.CTkOptionMenu(
+        self.language_menu = IconDropdown(
             language_row,
             width=104,
             height=32,
-            corner_radius=8,
             values=list(I18n.LANGUAGE_LABELS.values()),
+            icon=self._create_icon('chevron-down', size=(16, 16)),
             command=self._select_language,
-            fg_color=SEGMENTED_UNSELECTED,
-            button_color=SEGMENTED_UNSELECTED,
-            button_hover_color=SEGMENTED_UNSELECTED_HOVER,
-            text_color=NAV_TEXT,
             font=self.font_subtitle,
-            dropdown_fg_color=SEGMENTED_UNSELECTED,
-            dropdown_hover_color=NAV_HOVER_BG,
-            dropdown_text_color=NAV_TEXT,
-            dropdown_font=self.font_subtitle,
         )
         self.language_menu.set(I18n.LANGUAGE_LABELS[I18n.get_language()])
         self.language_menu.pack(side='right')
@@ -453,7 +609,7 @@ class App(ctk.CTk):
         return entry
 
     def _add_option_group(self, card, row, pady=(12, 0)):
-        group = ctk.CTkFrame(card, corner_radius=10, fg_color=('gray90', 'gray20'))
+        group = ctk.CTkFrame(card, corner_radius=10, fg_color='transparent')
         group.grid(row=row, column=0, sticky='ew', padx=16, pady=pady)
         return group
 
@@ -545,16 +701,12 @@ class App(ctk.CTk):
         group = self._add_option_group(card, 3)
         self._add_option_label(group, I18n.tr('label.image_type'))
         labels = _image_type_labels()
-        image_type = ctk.CTkOptionMenu(
+        image_type = IconDropdown(
             group,
             values=labels,
+            icon=self._create_icon('chevron-down'),
             width=110,
             height=34,
-            fg_color=SEGMENTED_UNSELECTED,
-            button_color=ACCENT,
-            button_hover_color=ACCENT_HOVER,
-            dropdown_fg_color=SEGMENTED_UNSELECTED,
-            dropdown_hover_color=NAV_HOVER_BG,
             font=self.font_body,
         )
         image_type.set(labels[0])
